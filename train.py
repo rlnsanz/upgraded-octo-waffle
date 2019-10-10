@@ -11,7 +11,11 @@ import sys
 import argparse
 from datetime import datetime
 
+import flor
+
 import numpy as np
+flor.pin_state(np)
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -21,8 +25,6 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 #from dataset import *
 from torch.autograd import Variable
-
-from tensorboardX import SummaryWriter
 
 from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR
@@ -37,8 +39,9 @@ def train(epoch):
         images = Variable(images)
         labels = Variable(labels)
 
-        labels = labels.cuda()
-        images = images.cuda()
+        if torch.cuda.is_available():
+            labels = labels.cuda()
+            images = images.cuda()
 
         optimizer.zero_grad()
         outputs = net(images)
@@ -49,11 +52,11 @@ def train(epoch):
         n_iter = (epoch - 1) * len(cifar100_training_loader) + batch_index + 1
 
         last_layer = list(net.children())[-1]
-        for name, para in last_layer.named_parameters():
-            if 'weight' in name:
-                writer.add_scalar('LastLayerGradients/grad_norm2_weights', para.grad.norm(), n_iter)
-            if 'bias' in name:
-                writer.add_scalar('LastLayerGradients/grad_norm2_bias', para.grad.norm(), n_iter)
+        # for name, para in last_layer.named_parameters():
+        #     if 'weight' in name:
+        #         writer.add_scalar('LastLayerGradients/grad_norm2_weights', para.grad.norm(), n_iter)
+        #     if 'bias' in name:
+        #         writer.add_scalar('LastLayerGradients/grad_norm2_bias', para.grad.norm(), n_iter)
 
         print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(
             loss.item(),
@@ -64,12 +67,12 @@ def train(epoch):
         ))
 
         #update training loss for each iteration
-        writer.add_scalar('Train/loss', loss.item(), n_iter)
+        # writer.add_scalar('Train/loss', loss.item(), n_iter)
 
-    for name, param in net.named_parameters():
-        layer, attr = os.path.splitext(name)
-        attr = attr[1:]
-        writer.add_histogram("{}/{}".format(layer, attr), param, epoch)
+    # for name, param in net.named_parameters():
+    #     layer, attr = os.path.splitext(name)
+    #     attr = attr[1:]
+    #     writer.add_histogram("{}/{}".format(layer, attr), param, epoch)
 
 def eval_training(epoch):
     net.eval()
@@ -81,8 +84,9 @@ def eval_training(epoch):
         images = Variable(images)
         labels = Variable(labels)
 
-        images = images.cuda()
-        labels = labels.cuda()
+        if torch.cuda.is_available():
+            images = images.cuda()
+            labels = labels.cuda()
 
         outputs = net(images)
         loss = loss_function(outputs, labels)
@@ -97,8 +101,8 @@ def eval_training(epoch):
     print()
 
     #add informations to tensorboard
-    writer.add_scalar('Test/Average loss', test_loss / len(cifar100_test_loader.dataset), epoch)
-    writer.add_scalar('Test/Accuracy', correct.float() / len(cifar100_test_loader.dataset), epoch)
+    # writer.add_scalar('Test/Average loss', test_loss / len(cifar100_test_loader.dataset), epoch)
+    # writer.add_scalar('Test/Accuracy', correct.float() / len(cifar100_test_loader.dataset), epoch)
 
     return correct.float() / len(cifar100_test_loader.dataset)
 
@@ -141,12 +145,12 @@ if __name__ == '__main__':
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
 
     #use tensorboard
-    if not os.path.exists(settings.LOG_DIR):
-        os.mkdir(settings.LOG_DIR)
-    writer = SummaryWriter(log_dir=os.path.join(
-            settings.LOG_DIR, args.net, settings.TIME_NOW))
-    input_tensor = torch.Tensor(12, 3, 32, 32).cuda()
-    writer.add_graph(net, Variable(input_tensor, requires_grad=True))
+    # if not os.path.exists(settings.LOG_DIR):
+    #     os.mkdir(settings.LOG_DIR)
+    # writer = SummaryWriter(log_dir=os.path.join(
+    #         settings.LOG_DIR, args.net, settings.TIME_NOW))
+    # input_tensor = torch.Tensor(12, 3, 32, 32).cuda()
+    # writer.add_graph(net, Variable(input_tensor, requires_grad=True))
 
     #create checkpoint folder to save model
     if not os.path.exists(checkpoint_path):
@@ -159,16 +163,21 @@ if __name__ == '__main__':
         if epoch > args.warm:
             train_scheduler.step(epoch)
 
-        train(epoch)
+        if not flor.SKIP:
+            train(epoch)
+            flor.store(net.state_dict())
+        else:
+            net.load_state_dict(flor.load())
+
         acc = eval_training(epoch)
 
         #start to save best performance model after learning rate decay to 0.01 
-        if epoch > settings.MILESTONES[1] and best_acc < acc:
-            torch.save(net.state_dict(), checkpoint_path.format(net=args.net, epoch=epoch, type='best'))
-            best_acc = acc
-            continue
+        # if epoch > settings.MILESTONES[1] and best_acc < acc:
+        #     torch.save(net.state_dict(), checkpoint_path.format(net=args.net, epoch=epoch, type='best'))
+        #     best_acc = acc
+        #     continue
 
-        if not epoch % settings.SAVE_EPOCH:
-            torch.save(net.state_dict(), checkpoint_path.format(net=args.net, epoch=epoch, type='regular'))
+        # if not epoch % settings.SAVE_EPOCH:
+        #     torch.save(net.state_dict(), checkpoint_path.format(net=args.net, epoch=epoch, type='regular'))
 
-    writer.close()
+    # writer.close()

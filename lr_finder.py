@@ -85,8 +85,9 @@ if __name__ == '__main__':
 
             lr_scheduler.step()
 
-            images = images.cuda()
-            labels = labels.cuda()
+            if torch.cuda.is_available():
+                images = images.cuda()
+                labels = labels.cuda()
 
             optimizer.zero_grad()
             predicts = net(images)
