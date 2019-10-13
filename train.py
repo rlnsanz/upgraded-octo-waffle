@@ -40,8 +40,8 @@ def train(epoch):
     net.train()
     if not flor.SKIP:
         for batch_index, (images, labels) in enumerate(cifar100_training_loader):
-            if epoch <= args.warm:
-                warmup_scheduler.step()
+            # if epoch <= args.warm:
+            #     warmup_scheduler.step()
 
             images = Variable(images)
             labels = Variable(labels)
@@ -66,17 +66,15 @@ def train(epoch):
 
         # Store the globals
         flor.store(net.state_dict())
-        if epoch <= args.warm:
-            flor.store(warmup_scheduler.state_dict())
+        # if epoch <= args.warm:
+            # flor.store(warmup_scheduler.state_dict())
         flor.store(optimizer.state_dict())
     else:
         net.load_state_dict(flor.load())
         net.train()
-        if epoch <= args.warm:
-            warmup_scheduler.load_state_dict(flor.load)
+        # if epoch <= args.warm:
+        #     warmup_scheduler.load_state_dict(flor.load)
         optimizer.load_state_dict(flor.load())
-        loss = flor.load()
-
 
 def eval_training(epoch):
     net.eval()
@@ -146,16 +144,16 @@ if __name__ == '__main__':
     
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
-    train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
+    # train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
     iter_per_epoch = len(cifar100_training_loader)
-    warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
+    # warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
 
     best_acc = 0.0
     for epoch in range(1, settings.EPOCH):
 
-        if epoch > args.warm:
-            train_scheduler.step(epoch)
+        # if epoch > args.warm:
+        #     train_scheduler.step(epoch)
 
         train(epoch)
         acc = eval_training(epoch)
