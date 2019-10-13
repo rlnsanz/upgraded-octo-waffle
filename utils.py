@@ -231,3 +231,23 @@ class WarmUpLR(_LRScheduler):
         rate to base_lr * m / total_iters
         """
         return [base_lr * self.last_epoch / (self.total_iters + 1e-8) for base_lr in self.base_lrs]
+
+class CLR_Scheduler(_LRScheduler):
+    def __init__(self, optimizer, step_size, min_lr, max_lr, last_epoch=-1):
+        """
+        Implemented for Super Convergence
+
+        :param optimizer:
+        :param step_size: Number of calls to step() to complete one step. 1-Cycle is 2 steps.
+        :param min_lr:
+        :param max_lr:
+        :param last_epoch:
+        """
+        self.lr_schedule = list(numpy.linspace(min_lr, max_lr, step_size)) + list(numpy.linspace(max_lr, min_lr, step_size))
+        super().__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+        """we will use the first m batches, and set the learning
+        rate to base_lr * m / total_iters
+        """
+        return self.lr_schedule.pop(0)
