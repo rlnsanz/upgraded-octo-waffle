@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
 from conf import settings
-from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR
+from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler
 
 def train(epoch):
     """
@@ -40,9 +40,8 @@ def train(epoch):
     net.train()
     if not flor.SKIP:
         for batch_index, (images, labels) in enumerate(cifar100_training_loader):
-            # if epoch <= args.warm:
-            #     warmup_scheduler.step()
 
+            clr_scheduler.step()
             images = Variable(images)
             labels = Variable(labels)
 
@@ -141,19 +140,16 @@ if __name__ == '__main__':
         batch_size=args.b,
         shuffle=args.s
     )
-    
+
+    iter_per_epoch = len(cifar100_training_loader)
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     # train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
-    iter_per_epoch = len(cifar100_training_loader)
     # warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
+    clr_scheduler = CLR_Scheduler(optimizer, step_size=int((iter_per_epoch * settings.EPOCH) / 2), min_lr=args.lr, max_lr=3.0)
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
 
     best_acc = 0.0
-    for epoch in range(1, settings.EPOCH):
-
-        # if epoch > args.warm:
-        #     train_scheduler.step(epoch)
-
+    for epoch in range(1, settings.EPOCH + 1):
         train(epoch)
         acc = eval_training(epoch)
