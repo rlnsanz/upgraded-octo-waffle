@@ -120,7 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', type=int, default=256, help='batch size for dataloader')
     parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
-    parser.add_argument('-lr', type=float, default=0.05, help='initial learning rate')
+    parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     args = parser.parse_args()
 
     net = get_network(args, use_gpu=args.gpu)
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.1, weight_decay=0.0)
     # train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
     # warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
-    clr_scheduler = CLR_Scheduler(optimizer, step_size=int((iter_per_epoch * settings.EPOCH) / 2), min_lr=args.lr, max_lr=3.0)
+    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0)
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
 
     start_time = time.time()

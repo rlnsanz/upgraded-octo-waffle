@@ -233,23 +233,30 @@ class WarmUpLR(_LRScheduler):
         return [base_lr * self.last_epoch / (self.total_iters + 1e-8) for base_lr in self.base_lrs]
 
 class CLR_Scheduler(_LRScheduler):
-    def __init__(self, optimizer, step_size, min_lr, max_lr, last_epoch=-1, repeat_factor=1):
+    def __init__(self, optimizer, net_steps, min_lr, max_lr, last_epoch=-1, repeat_factor=1, tail_frac=0.5):
         """
         Implemented for Super Convergence
 
         :param optimizer:
-        :param step_size: Number of calls to step() to complete one step. 1-Cycle is 2 steps.
+        :param net_steps: Number of calls to step() overall
         :param min_lr:
         :param max_lr:
         :param last_epoch:
+        :param tail_frac: This scheduler consists of a cycle followed by a long tail that decreases monotonically.
+            Tail frac is the fraction of net_steps allocated to the tail.
         """
         # The +1 is because get_lr is called in super().__init__
+        tail_step_size = int(net_steps * tail_frac)
+        step_size = int((net_steps - tail_step_size) / 2)
         self.lr_schedule = [min_lr,] + list(
             numpy.repeat(list(
                 numpy.linspace(min_lr, max_lr, int(numpy.ceil(step_size / repeat_factor)), endpoint=False)) +
                          list(
                              numpy.linspace(max_lr, min_lr, int(numpy.floor(step_size / repeat_factor)))),
                          repeat_factor))
+        tail_step_size = net_steps - len(self.lr_schedule)
+        self.lr_schedule += list(numpy.linspace(min_lr, min_lr/4, tail_step_size))
+        assert len(self.lr_schedule) == net_steps + 1
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
