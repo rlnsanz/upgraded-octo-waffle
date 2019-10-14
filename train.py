@@ -10,6 +10,7 @@ import os
 import sys
 import argparse
 from datetime import datetime
+import time
 
 import flor
 
@@ -119,7 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', type=int, default=128, help='batch size for dataloader')
     parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
-    parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
+    parser.add_argument('-lr', type=float, default=0.05, help='initial learning rate')
     args = parser.parse_args()
 
     net = get_network(args, use_gpu=args.gpu)
@@ -149,7 +150,11 @@ if __name__ == '__main__':
     clr_scheduler = CLR_Scheduler(optimizer, step_size=int((iter_per_epoch * settings.EPOCH) / 2), min_lr=args.lr, max_lr=3.0)
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
 
+    start_time = time.time()
+
     best_acc = 0.0
     for epoch in range(1, settings.EPOCH + 1):
         train(epoch)
         acc = eval_training(epoch)
+
+    print("------- {} seconds ---------".format(time.time() - start_time))

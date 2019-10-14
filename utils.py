@@ -244,7 +244,12 @@ class CLR_Scheduler(_LRScheduler):
         :param last_epoch:
         """
         # The +1 is because get_lr is called in super().__init__
-        self.lr_schedule = [min_lr,] + list(numpy.repeat(list(numpy.linspace(min_lr, max_lr, step_size / repeat_factor) ) + list(numpy.linspace(max_lr, min_lr, step_size / repeat_factor)), repeat_factor))
+        self.lr_schedule = [min_lr,] + list(
+            numpy.repeat(list(
+                numpy.linspace(min_lr, max_lr, int(numpy.ceil(step_size / repeat_factor)), endpoint=False)) +
+                         list(
+                             numpy.linspace(max_lr, min_lr, int(numpy.floor(step_size / repeat_factor)))),
+                         repeat_factor))
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
