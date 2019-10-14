@@ -117,7 +117,7 @@ if __name__ == '__main__':
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
     parser.add_argument('-w', type=int, default=2, help='number of workers for dataloader')
-    parser.add_argument('-b', type=int, default=(128*4), help='batch size for dataloader')
+    parser.add_argument('-b', type=int, default=256, help='batch size for dataloader')
     parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.05, help='initial learning rate')
