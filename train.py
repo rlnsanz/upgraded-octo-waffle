@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     iter_per_epoch = len(cifar100_training_loader)
     loss_function = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.1, weight_decay=0.0)
     # train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
     # warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
     clr_scheduler = CLR_Scheduler(optimizer, step_size=int((iter_per_epoch * settings.EPOCH) / 2), min_lr=args.lr, max_lr=3.0)
