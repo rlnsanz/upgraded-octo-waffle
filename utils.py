@@ -233,7 +233,7 @@ class WarmUpLR(_LRScheduler):
         return [base_lr * self.last_epoch / (self.total_iters + 1e-8) for base_lr in self.base_lrs]
 
 class CLR_Scheduler(_LRScheduler):
-    def __init__(self, optimizer, step_size, min_lr, max_lr, last_epoch=-1):
+    def __init__(self, optimizer, step_size, min_lr, max_lr, last_epoch=-1, repeat_factor=4):
         """
         Implemented for Super Convergence
 
@@ -244,7 +244,7 @@ class CLR_Scheduler(_LRScheduler):
         :param last_epoch:
         """
         # The +1 is because get_lr is called in super().__init__
-        self.lr_schedule = list(numpy.linspace(min_lr, max_lr, step_size + 1)) + list(numpy.linspace(max_lr, min_lr, step_size))
+        self.lr_schedule = [min_lr,] + list(numpy.repeat(list(numpy.linspace(min_lr, max_lr, step_size / repeat_factor) ) + list(numpy.linspace(max_lr, min_lr, step_size / repeat_factor)), repeat_factor))
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
