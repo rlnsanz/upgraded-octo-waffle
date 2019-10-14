@@ -261,3 +261,54 @@ class CLR_Scheduler(_LRScheduler):
 
     def get_lr(self):
         return [self.lr_schedule.pop(0),]
+
+
+class Dynamic_CLR_Scheduler(_LRScheduler):
+    def __init__(self, optimizer, epoch_per_cycle, iter_per_epoch, epoch_per_tail, min_lr, max_lr, target=0.8):
+        self.step_size = int((epoch_per_cycle * iter_per_epoch) / 2)
+        self.min_lr = min_lr
+        self.max_lr = max_lr
+
+        self.lr_schedule = [min_lr,] + self.get_lr_schedule()
+
+        self.epoch_per_tail = epoch_per_tail
+        self.acc_mem = []
+        self.target = target
+        super().__init__(optimizer)
+
+    def get_lr_schedule(self):
+        lr_sched = list(numpy.linspace(self.min_lr, self.max_lr, self.step_size, endpoint=False)) +list(numpy.linspace(self.max_lr, self.min_lr, self.step_size))
+        lr_sched += list(numpy.linspace(self.min_lr, self.min_lr/2, self.epoch_per_tail))
+        return lr_sched
+
+
+    def get_lr(self):
+        return [self.lr_schedule.pop(0),]
+
+    def loop_next(self, prev_accuracy):
+        if prev_accuracy is None:
+            return True
+        if len(self.lr_schedule) > self.epoch_per_tail:
+            return True
+        elif self.lr_schedule:
+            self.acc_mem.append(prev_accuracy)
+            return True
+        else:
+            # Options
+            if any(filter(lambda x: x >= self.target, self.acc_mem)):
+                return False
+            else:
+                epsilon = 3e-3
+                # We're making progress and should continue our trend
+                if numpy.array(self.acc_mem).std > epsilon:
+                    self.acc_mem = []
+                    self.lr_schedule = list(numpy.linspace(self.min_lr, self.min_lr/2, self.epoch_per_tail))
+                # We're not making progress and should jolt
+                else:
+                    self.acc_mem = []
+                    self.lr_schedule = self.get_lr_schedule()
+
+
+
+
+

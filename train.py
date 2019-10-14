@@ -28,7 +28,7 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
 from conf import settings
-from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler
+from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler, Dynamic_CLR_Scheduler
 
 def train(epoch):
     """
@@ -144,17 +144,25 @@ if __name__ == '__main__':
 
     iter_per_epoch = len(cifar100_training_loader)
     loss_function = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=0.0)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)
     # train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
     # warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
-    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0)
+    # clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0)
+    clr_scheduler = Dynamic_CLR_Scheduler(optimizer, epoch_per_cycle=settings.EPOCH,
+                                          iter_per_epoch=iter_per_epoch, epoch_per_tail=5, min_lr=args.lr,
+                                          max_lr=3.0)
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
 
     start_time = time.time()
 
     best_acc = 0.0
-    for epoch in range(1, settings.EPOCH + 1):
+    prev_acc = None
+    epoch = 1
+    while clr_scheduler.loop_next(prev_acc):
         train(epoch)
         acc = eval_training(epoch)
+
+        prev_acc = acc
+        epoch += 1
 
     print("------- {} seconds ---------".format(time.time() - start_time))
