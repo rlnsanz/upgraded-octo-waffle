@@ -254,7 +254,7 @@ class CLR_Scheduler(_LRScheduler):
                          list(
                              numpy.linspace(max_lr, min_lr, int(numpy.floor(step_size / repeat_factor)))),
                          repeat_factor))
-        tail_step_size = net_steps - len(self.lr_schedule)
+        tail_step_size = net_steps - len(self.lr_schedule) + 1
         self.lr_schedule += list(numpy.linspace(min_lr, min_lr/4, tail_step_size))
         assert len(self.lr_schedule) == net_steps + 1
         super().__init__(optimizer, last_epoch)
