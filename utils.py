@@ -265,7 +265,7 @@ class CLR_Scheduler(_LRScheduler):
 
 class Dynamic_CLR_Scheduler(_LRScheduler):
     def __init__(self, optimizer, epoch_per_cycle, iter_per_epoch, epoch_per_tail, min_lr, max_lr, target=0.8):
-        self.step_size = int((epoch_per_cycle * iter_per_epoch) / 2)
+        self.step_size = (epoch_per_cycle * iter_per_epoch) / 2
         self.iter_per_epoch = iter_per_epoch
         self.epoch_per_tail = epoch_per_tail
         self.min_lr = min_lr
@@ -278,7 +278,7 @@ class Dynamic_CLR_Scheduler(_LRScheduler):
         super().__init__(optimizer)
 
     def get_lr_schedule(self):
-        lr_sched = list(numpy.linspace(self.min_lr, self.max_lr, self.step_size, endpoint=False)) +list(numpy.linspace(self.max_lr, self.min_lr, self.step_size))
+        lr_sched = list(numpy.linspace(self.min_lr, self.max_lr, int(self.step_size), endpoint=False)) +list(numpy.linspace(self.max_lr, self.min_lr, int(numpy.ceil(self.step_size))))
         lr_sched += list(numpy.linspace(self.min_lr, self.min_lr/2, self.epoch_per_tail * self.iter_per_epoch))
         return lr_sched
 
