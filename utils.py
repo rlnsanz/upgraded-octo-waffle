@@ -301,7 +301,7 @@ class Dynamic_CLR_Scheduler(_LRScheduler):
             else:
                 epsilon = 3e-3
                 # We're making progress and should continue our trend
-                if numpy.array(self.acc_mem).std > epsilon:
+                if numpy.array(self.acc_mem).std() > epsilon:
                     self.acc_mem = []
                     self.lr_schedule = list(numpy.linspace(self.min_lr, self.min_lr/2, self.epoch_per_tail * self.iter_per_epoch))
                 # We're not making progress and should jolt
