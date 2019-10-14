@@ -289,7 +289,7 @@ class Dynamic_CLR_Scheduler(_LRScheduler):
     def loop_next(self, prev_accuracy):
         if prev_accuracy is None:
             return True
-        if len(self.lr_schedule) > self.epoch_per_tail:
+        if len(self.lr_schedule) > self.epoch_per_tail * self.iter_per_epoch:
             return True
         elif self.lr_schedule:
             self.acc_mem.append(prev_accuracy)
