@@ -308,6 +308,7 @@ class Dynamic_CLR_Scheduler(_LRScheduler):
                 else:
                     self.acc_mem = []
                     self.lr_schedule = self.get_lr_schedule()
+                return True
 
 
 
