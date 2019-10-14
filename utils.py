@@ -267,12 +267,12 @@ class Dynamic_CLR_Scheduler(_LRScheduler):
     def __init__(self, optimizer, epoch_per_cycle, iter_per_epoch, epoch_per_tail, min_lr, max_lr, target=0.8):
         self.step_size = int((epoch_per_cycle * iter_per_epoch) / 2)
         self.iter_per_epoch = iter_per_epoch
+        self.epoch_per_tail = epoch_per_tail
         self.min_lr = min_lr
         self.max_lr = max_lr
 
         self.lr_schedule = [min_lr,] + self.get_lr_schedule()
 
-        self.epoch_per_tail = epoch_per_tail
         self.acc_mem = []
         self.target = target
         super().__init__(optimizer)
