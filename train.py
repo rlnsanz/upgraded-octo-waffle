@@ -147,7 +147,7 @@ if __name__ == '__main__':
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)
     # train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
     # warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
-    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=4.0)
+    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=4.0, tail_frac=0.0)
     # clr_scheduler = Dynamic_CLR_Scheduler(optimizer, epoch_per_cycle=settings.EPOCH,
     #                                       iter_per_epoch=iter_per_epoch, epoch_per_tail=settings.EPOCH_PER_TAIL,
     #                                       min_lr=args.lr,
