@@ -262,6 +262,9 @@ class CLR_Scheduler(_LRScheduler):
     def get_lr(self):
         return [self.lr_schedule.pop(0),]
 
+    def loop_next(self, prev_accuracy):
+        return len(self.lr_schedule) > 0
+
 
 class Dynamic_CLR_Scheduler(_LRScheduler):
     def __init__(self, optimizer, epoch_per_cycle, iter_per_epoch, epoch_per_tail, min_lr, max_lr, target=0.8):
