@@ -149,7 +149,8 @@ if __name__ == '__main__':
     # warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
     # clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0)
     clr_scheduler = Dynamic_CLR_Scheduler(optimizer, epoch_per_cycle=settings.EPOCH,
-                                          iter_per_epoch=iter_per_epoch, epoch_per_tail=5, min_lr=args.lr,
+                                          iter_per_epoch=iter_per_epoch, epoch_per_tail=settings.EPOCH_PER_TAIL,
+                                          min_lr=args.lr,
                                           max_lr=3.0)
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
 
@@ -158,7 +159,7 @@ if __name__ == '__main__':
     best_acc = 0.0
     prev_acc = None
     epoch = 1
-    while clr_scheduler.loop_next(prev_acc) and epoch <= 100:
+    while clr_scheduler.loop_next(prev_acc) and epoch <= settings.EPOCH_CAP:
         train(epoch)
         acc = eval_training(epoch)
 
