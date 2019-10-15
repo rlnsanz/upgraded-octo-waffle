@@ -296,6 +296,7 @@ class Dynamic_CLR_Scheduler(_LRScheduler):
             return True
         else:
             # Options
+            self.acc_mem.append(prev_accuracy)
             if any(filter(lambda x: x >= self.target, self.acc_mem)):
                 return False
             else:
