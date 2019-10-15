@@ -158,7 +158,7 @@ if __name__ == '__main__':
     best_acc = 0.0
     prev_acc = None
     epoch = 1
-    while clr_scheduler.loop_next(prev_acc):
+    while clr_scheduler.loop_next(prev_acc) and epoch <= 100:
         train(epoch)
         acc = eval_training(epoch)
 
