@@ -10,7 +10,9 @@ import os
 import sys
 import argparse
 from datetime import datetime
+import time
 
+sys.path.append('../flor/')
 import flor
 
 import numpy as np
@@ -37,8 +39,8 @@ def train(epoch):
     :return:
     """
 
-    net.train()
     if not flor.SKIP:
+        net.train()
         for batch_index, (images, labels) in enumerate(cifar100_training_loader):
             # if epoch <= args.warm:
             #     warmup_scheduler.step()
@@ -64,17 +66,45 @@ def train(epoch):
                 total_samples=len(cifar100_training_loader.dataset)
             ))
 
-        # Store the globals
-        flor.store(net.state_dict())
-        # if epoch <= args.warm:
-            # flor.store(warmup_scheduler.state_dict())
-        flor.store(optimizer.state_dict())
+
+        if epoch % settings.LOG_STEPSIZE == 0:  
+            # Store the globals
+            flor.store(net.state_dict())
+            # if epoch <= args.warm:
+                # flor.store(warmup_scheduler.state_dict())
+            flor.store(optimizer.state_dict())
     else:
-        net.load_state_dict(flor.load())
-        net.train()
-        # if epoch <= args.warm:
-        #     warmup_scheduler.load_state_dict(flor.load)
-        optimizer.load_state_dict(flor.load())
+        if epoch % settings.LOG_STEPSIZE == 0:
+            net.load_state_dict(flor.load())
+            # if epoch <= args.warm:
+            #     warmup_scheduler.load_state_dict(flor.load)
+            optimizer.load_state_dict(flor.load())
+        else:
+            net.train()
+            for batch_index, (images, labels) in enumerate(cifar100_training_loader):
+                # if epoch <= args.warm:
+                #     warmup_scheduler.step()
+
+                images = Variable(images)
+                labels = Variable(labels)
+
+                if torch.cuda.is_available():
+                    labels = labels.cuda()
+                    images = images.cuda()
+
+                optimizer.zero_grad()
+                outputs = net(images)
+                loss = loss_function(outputs, labels)
+                loss.backward()
+                optimizer.step()
+
+                print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(
+                    loss.item(),
+                    optimizer.param_groups[0]['lr'],
+                    epoch=epoch,
+                    trained_samples=batch_index * args.b + len(images),
+                    total_samples=len(cifar100_training_loader.dataset)
+            ))
 
 def eval_training(epoch):
     net.eval()
@@ -150,6 +180,7 @@ if __name__ == '__main__':
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
 
     best_acc = 0.0
+    start_time = time.time()
     for epoch in range(1, settings.EPOCH):
 
         # if epoch > args.warm:
@@ -157,3 +188,6 @@ if __name__ == '__main__':
 
         train(epoch)
         acc = eval_training(epoch)
+    print("------- {} seconds ---------".format(time.time() - start_time))
+
+ # https://pytorch.org/tutorials/beginner/saving_loading_models.html
