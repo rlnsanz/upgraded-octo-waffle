@@ -112,8 +112,7 @@ def eval_training(epoch):
     test_loss = 0.0 # cost function error
     correct = 0.0
 
-    if not flor.SKIP:
-        for (images, labels) in cifar100_test_loader:
+    for (images, labels) in cifar100_test_loader:
             images = Variable(images)
             labels = Variable(labels)
 
@@ -128,9 +127,30 @@ def eval_training(epoch):
             correct += preds.eq(labels).sum()
         flor.store(test_loss)
         flor.store(correct)
-    else:
-        test_loss = flor.load()
-        correct = flor.load()
+
+    #######
+
+    # if not flor.SKIP:
+    #     for (images, labels) in cifar100_test_loader:
+    #         images = Variable(images)
+    #         labels = Variable(labels)
+
+    #         if torch.cuda.is_available():
+    #             images = images.cuda()
+    #             labels = labels.cuda()
+
+    #         outputs = net(images)
+    #         loss = loss_function(outputs, labels)
+    #         test_loss += loss.item()
+    #         _, preds = outputs.max(1)
+    #         correct += preds.eq(labels).sum()
+    #     flor.store(test_loss)
+    #     flor.store(correct)
+    # else:
+    #     test_loss = flor.load()
+    #     correct = flor.load()
+
+    #######
 
 
     print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
