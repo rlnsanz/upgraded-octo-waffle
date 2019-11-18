@@ -1,21 +1,11 @@
 # train.py
-#!/usr/bin/env	python3
-
-""" train network using pytorch
-
-author baiyu
-"""
+#!/usr/bin/env  python3
 
 import os
 import sys
 import argparse
 from datetime import datetime
 import time
-
-import flor
-
-import numpy as np
-flor.pin_state(np)
 
 import torch
 import torch.nn as nn
@@ -24,106 +14,69 @@ import torchvision
 import torchvision.transforms as transforms
 
 from torch.utils.data import DataLoader
-#from dataset import *
 from torch.autograd import Variable
 
 from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler, Dynamic_CLR_Scheduler
 
 def train(epoch):
-    """
-    :globals: net, cifar100_training_loader, args, warmup_scheduler, torch
-              optimizer, loss_function
-    :param epoch:
-    :return:
-    """
 
     net.train()
-    if not flor.SKIP:
-        for batch_index, (images, labels) in enumerate(cifar100_training_loader):
+    for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
 
-            clr_scheduler.step()
-            images = Variable(images)
-            labels = Variable(labels)
+        clr_scheduler.step()                    # changes clr_scheduler
+        images = Variable(images)               # changes images:out; not_changes Variable, images:in
+        labels = Variable(labels)               # changes labels:out; not_changes Variable, labels:in
 
-            if torch.cuda.is_available():
-                labels = labels.cuda()
-                images = images.cuda()
+        if torch.cuda.is_available():           # not_changes torch,torch.cuda,torch.cuda.is_available
+            labels = labels.cuda()              # changes labels:out, 
+            images = images.cuda()              # changes images
 
-            optimizer.zero_grad()
-            outputs = net(images)
-            loss = loss_function(outputs, labels)
-            loss.backward()
-            optimizer.step()
+        optimizer.zero_grad()                   # changes optimizer
+        outputs = net(images)                   # changes outputs; not_changes net, images
+        loss = loss_function(outputs, labels)   # changes loss; not_changes loss_function, outputs, labels
+        loss.backward()                         # changes loss
+        optimizer.step()                        # changes optimizer
 
-            print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(
-                loss.item(),
-                optimizer.param_groups[0]['lr'],
-                epoch=epoch,
-                trained_samples=batch_index * args.b + len(images),
-                total_samples=len(cifar100_training_loader.dataset)
-            ))
+        print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=batch_index * args.b + len(images), total_samples=len(cifar100_training_loader.dataset)))                                      # Could have side-effects, and I can't analyze them, so I should replay it
 
-        # Store the globals
-        flor.store(net.state_dict())
-        # if epoch <= args.warm:
-            # flor.store(warmup_scheduler.state_dict())
-        flor.store(optimizer.state_dict())
-    else:
-        net.load_state_dict(flor.load())
-        net.train()
-        # if epoch <= args.warm:
-        #     warmup_scheduler.load_state_dict(flor.load)
-        optimizer.load_state_dict(flor.load())
 
 def eval_training(epoch):
-    net.eval()
+    net.eval()                                                      # changes net
 
-    test_loss = 0.0 # cost function error
-    correct = 0.0
+    test_loss = 0.0 
+    correct = 0.0   
 
-    if not flor.SKIP:
-        for (images, labels) in cifar100_test_loader:
-            images = Variable(images)
-            labels = Variable(labels)
+    for (images, labels) in cifar100_test_loader:
+        images = Variable(images)                                   # changes images
+        labels = Variable(labels)                                   # changes labels
 
-            if torch.cuda.is_available():
-                images = images.cuda()
-                labels = labels.cuda()
+        if torch.cuda.is_available():
+            images = images.cuda()                                  # changes images
+            labels = labels.cuda()                                  # changes labels
 
-            outputs = net(images)
-            loss = loss_function(outputs, labels)
-            test_loss += loss.item()
-            _, preds = outputs.max(1)
-            correct += preds.eq(labels).sum()
-        flor.store(test_loss)
-        flor.store(correct)
-    else:
-        test_loss = flor.load()
-        correct = flor.load()
+        outputs = net(images)                                       # changes outputs
+        loss = loss_function(outputs, labels)                       # changes loss
+        test_loss += loss.item()                                    # changes test_loss
+        _, preds = outputs.max(1)                                   # changes _, preds
+        correct += preds.eq(labels).sum()                           # changes correct
 
 
-    print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
-        test_loss / len(cifar100_test_loader.dataset),
-        correct.float() / len(cifar100_test_loader.dataset)
-    ))
-    print()
-
-    return correct.float() / len(cifar100_test_loader.dataset)
+    return test_loss / len(cifar100_test_loader.dataset), correct.float() / len(cifar100_test_loader.dataset)
 
 if __name__ == '__main__':
     
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()                                                         
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
     parser.add_argument('-w', type=int, default=2, help='number of workers for dataloader')
     parser.add_argument('-b', type=int, default=128, help='batch size for dataloader')
     parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
-    parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
-    args = parser.parse_args()
+    parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')           
+    args = parser.parse_args()                                                                 
 
-    net = get_network(args, use_gpu=args.gpu)
+    net = get_network(args, use_gpu=args.gpu)                                                  
         
     #data preprocessing:
     cifar100_training_loader = get_training_dataloader(
@@ -132,7 +85,7 @@ if __name__ == '__main__':
         num_workers=args.w,
         batch_size=args.b,
         shuffle=args.s
-    )
+    )                                                                                         
     
     cifar100_test_loader = get_test_dataloader(
         settings.CIFAR100_TRAIN_MEAN,
@@ -140,30 +93,27 @@ if __name__ == '__main__':
         num_workers=args.w,
         batch_size=args.b,
         shuffle=args.s
-    )
+    )                                                                                  
 
-    iter_per_epoch = len(cifar100_training_loader)
+    iter_per_epoch = len(cifar100_training_loader)                                       
     loss_function = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)
-    # train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
-    # warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
-    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0, tail_frac=0.0)
-    # clr_scheduler = Dynamic_CLR_Scheduler(optimizer, epoch_per_cycle=settings.EPOCH,
-    #                                       iter_per_epoch=iter_per_epoch, epoch_per_tail=settings.EPOCH_PER_TAIL,
-    #                                       min_lr=args.lr,
-    #                                       max_lr=3.0)
-    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)         
+    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0, tail_frac=0.0) #memoize?
+    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)       
 
-    start_time = time.time()
+    start_time = time.time()                                                        
 
-    best_acc = 0.0
-    prev_acc = None
-    epoch = 1
+    best_acc = 0.0                                                                          
+    epoch = 1                                                                         
     for _ in range(settings.EPOCH):
-        train(epoch)
-        acc = eval_training(epoch)
+        train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
+        loss, acc = eval_training(epoch)    #changes loss, acc, net                                                  
 
-        prev_acc = acc
-        epoch += 1
+        print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
+            loss,
+            acc
+        ))
+
+        epoch += 1                 #changes epoch
 
     print("------- {} seconds ---------".format(time.time() - start_time))
