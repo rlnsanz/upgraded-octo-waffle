@@ -1,11 +1,13 @@
 # train.py
 #!/usr/bin/env  python3
 
+import time
+start_time = time.time()  
+
 import os
 import sys
 import argparse
 from datetime import datetime
-import time
 
 import torch
 import torch.nn as nn
@@ -65,7 +67,6 @@ def eval_training(epoch):
     return test_loss / len(cifar100_test_loader.dataset), correct.float() / len(cifar100_test_loader.dataset)
 
 if __name__ == '__main__':
-    
     parser = argparse.ArgumentParser()                                                         
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
@@ -99,9 +100,7 @@ if __name__ == '__main__':
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)         
     clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0, tail_frac=0.0) #memoize?
-    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)       
-
-    start_time = time.time()                                                        
+    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)                                                             
 
     best_acc = 0.0                                                                          
     epoch = 1                                                                         
