@@ -61,6 +61,9 @@ def get_network(args, use_gpu=True):
     elif args.net == 'resnet18':
         from models.resnet import resnet18
         net = resnet18()
+    elif args.net == 'resnet18ext':
+        from models.resnet import resnet18ext
+        net = resnet18ext()
     elif args.net == 'resnet34':
         from models.resnet import resnet34
         net = resnet34()
@@ -141,10 +144,15 @@ def get_network(args, use_gpu=True):
         print('the network name you have entered is not supported yet')
         sys.exit()
     
+    if args.net2 == 'resnet18ext':
+        from models.resnet import resnet18ext
+        net2 = resnet18ext()
+        
     if use_gpu and torch.cuda.is_available():
         net = net.cuda()
+        net2 = net2.cuda()
 
-    return net
+    return net, net2
 
 
 def get_training_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True):
