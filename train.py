@@ -50,7 +50,6 @@ def eval_training(epoch):
     correct = 0.0   
 
     for (images, labels) in cifar100_test_loader:
-        print("looping")
         images = Variable(images)                                   # changes images
         labels = Variable(labels)                                   # changes labels
 
@@ -61,18 +60,15 @@ def eval_training(epoch):
         outputs = net(images)                                       # changes outputs
         loss = loss_function(outputs, labels)                       # changes loss
         test_loss += loss.item()                                    # changes test_loss
-        # print("TEST_LOSS DEVICE: {}".format(test_loss.device))
         _, preds = outputs.max(1)                                   # changes _, preds
         correct += preds.eq(labels).sum()                           # changes correct
-        correct = correct.cpu()
-        print("TEST_LOSS DEVICE: {}".format(correct.device))
 
 
     return test_loss / len(cifar100_test_loader.dataset), correct.float() / len(cifar100_test_loader.dataset)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()                                                         
-    parser.add_argument('-net', type=str, default='resnet18', help='net type')
+    parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
     parser.add_argument('-w', type=int, default=2, help='number of workers for dataloader')
     parser.add_argument('-b', type=int, default=128, help='batch size for dataloader')
@@ -109,7 +105,7 @@ if __name__ == '__main__':
     best_acc = 0.0                                                                          
     epoch = 1                                                                         
     for _ in range(settings.EPOCH):
-        # train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
+        train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
         loss, acc = eval_training(epoch)    #changes loss, acc, net                                                  
 
         print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
@@ -118,6 +114,5 @@ if __name__ == '__main__':
         ))
 
         epoch += 1                 #changes epoch
-        break
 
     print("------- {} seconds ---------".format(time.time() - start_time))
