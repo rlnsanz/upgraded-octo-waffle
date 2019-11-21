@@ -21,38 +21,26 @@ def train(epoch):
         flor.namespace_stack.new()
         net.train()
         flor.skip_stack.new()
-        if flor.skip_stack.peek().should_execute((True)):
+        if flor.skip_stack.peek().should_execute((not flor.SKIP)):
             for (batch_index, (images, labels)) in enumerate(cifar100_training_loader):
-                _images = Variable(images).cuda()
-                _labels = Variable(labels).cuda()
-                _outputs = net(_images)
-                _loss = loss_function(_outputs, _labels)
-
-                flor.skip_stack.new()
-                if flor.skip_stack.peek().should_execute((not flor.SKIP)):
-                    clr_scheduler.step()
-                    images = Variable(images)
-                    flor.namespace_stack.test_force(images, 'images')
-                    labels = Variable(labels)
+                clr_scheduler.step()
+                images = Variable(images)
+                flor.namespace_stack.test_force(images, 'images')
+                labels = Variable(labels)
+                flor.namespace_stack.test_force(labels, 'labels')
+                if torch.cuda.is_available():
+                    labels = labels.cuda()
                     flor.namespace_stack.test_force(labels, 'labels')
-                    if torch.cuda.is_available():
-                        labels = labels.cuda()
-                        flor.namespace_stack.test_force(labels, 'labels')
-                        images = images.cuda()
-                        flor.namespace_stack.test_force(images, 'images')
-                    optimizer.zero_grad()
-                    outputs = net(images)
-                    flor.namespace_stack.test_force(outputs, 'outputs')
-                    loss = loss_function(outputs, labels)
-                    flor.namespace_stack.test_force(loss, 'loss')
-                    loss.backward()
-                    optimizer.step()
-                    print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=((batch_index * args.b) + len(images)), total_samples=len(cifar100_training_loader.dataset)))
-                (_, _) = flor.skip_stack.pop().proc_side_effects(clr_scheduler, optimizer)
-                print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(
-                    _loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch,
-                    trained_samples=((batch_index * args.b) + len(images)),
-                    total_samples=len(cifar100_training_loader.dataset)))
+                    images = images.cuda()
+                    flor.namespace_stack.test_force(images, 'images')
+                optimizer.zero_grad()
+                outputs = net(images)
+                flor.namespace_stack.test_force(outputs, 'outputs')
+                loss = loss_function(outputs, labels)
+                flor.namespace_stack.test_force(loss, 'loss')
+                loss.backward()
+                optimizer.step()
+                print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=((batch_index * args.b) + len(images)), total_samples=len(cifar100_training_loader.dataset)))
         (_, _) = flor.skip_stack.pop().proc_side_effects(clr_scheduler, optimizer)
     finally:
         flor.namespace_stack.pop()
@@ -65,34 +53,30 @@ def eval_training(epoch):
         flor.namespace_stack.test_force(test_loss, 'test_loss')
         correct = 0.0
         flor.namespace_stack.test_force(correct, 'correct')
-        flor.skip_stack.new()
-        if flor.skip_stack.peek().should_execute((not flor.SKIP)):
-            for (images, labels) in cifar100_test_loader:
-                flor.skip_stack.new()
-                if flor.skip_stack.peek().should_execute((not flor.SKIP)):
-                    images = Variable(images)
-                    flor.namespace_stack.test_force(images, 'images')
-                    labels = Variable(labels)
-                    flor.namespace_stack.test_force(labels, 'labels')
-                    if torch.cuda.is_available():
-                        images = images.cuda()
-                        flor.namespace_stack.test_force(images, 'images')
-                        labels = labels.cuda()
-                        flor.namespace_stack.test_force(labels, 'labels')
-                    outputs = net(images)
-                    flor.namespace_stack.test_force(outputs, 'outputs')
-                    loss = loss_function(outputs, labels)
-                    flor.namespace_stack.test_force(loss, 'loss')
-                    test_loss += loss.item()
-                    (_, preds) = outputs.max(1)
-                    flor.namespace_stack.test_force(_, '_')
-                    flor.namespace_stack.test_force(preds, 'preds')
-                    correct += preds.eq(labels).sum()
-                (test_loss, correct) = flor.skip_stack.pop().proc_side_effects(test_loss, correct)
-        (test_loss, correct) = flor.skip_stack.pop().proc_side_effects(test_loss, correct)
+        for (images, labels) in cifar100_test_loader:
+            images = Variable(images)
+            flor.namespace_stack.test_force(images, 'images')
+            labels = Variable(labels)
+            flor.namespace_stack.test_force(labels, 'labels')
+            if torch.cuda.is_available():
+                images = images.cuda()
+                flor.namespace_stack.test_force(images, 'images')
+                labels = labels.cuda()
+                flor.namespace_stack.test_force(labels, 'labels')
+            outputs = net(images)
+            flor.namespace_stack.test_force(outputs, 'outputs')
+            loss = loss_function(outputs, labels)
+            flor.namespace_stack.test_force(loss, 'loss')
+            test_loss += loss.item()
+            (_, preds) = outputs.max(1)
+            flor.namespace_stack.test_force(_, '_')
+            flor.namespace_stack.test_force(preds, 'preds')
+            correct += preds.eq(labels).sum()
         return ((test_loss / len(cifar100_test_loader.dataset)), (correct.float() / len(cifar100_test_loader.dataset)))
     finally:
         flor.namespace_stack.pop()
+
+
 if (__name__ == '__main__'):
     parser = argparse.ArgumentParser()
     flor.namespace_stack.test_force(parser, 'parser')
@@ -131,3 +115,4 @@ if (__name__ == '__main__'):
         print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
         epoch += 1
     print('------- {} seconds ---------'.format((time.time() - start_time)))
+    flor.flush()
