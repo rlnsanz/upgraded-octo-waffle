@@ -20,25 +20,28 @@ def train(epoch):
     try:
         flor.namespace_stack.new()
         net.train()
-        for (batch_index, (images, labels)) in enumerate(cifar100_training_loader):
-            clr_scheduler.step()
-            images = Variable(images)
-            flor.namespace_stack.test_force(images, 'images')
-            labels = Variable(labels)
-            flor.namespace_stack.test_force(labels, 'labels')
-            if torch.cuda.is_available():
-                labels = labels.cuda()
-                flor.namespace_stack.test_force(labels, 'labels')
-                images = images.cuda()
+        flor.skip_stack.new()
+        if flor.skip_stack.peek().should_execute(True):
+            for (batch_index, (images, labels)) in enumerate(cifar100_training_loader):
+                clr_scheduler.step()
+                images = Variable(images)
                 flor.namespace_stack.test_force(images, 'images')
-            optimizer.zero_grad()
-            outputs = net(images)
-            flor.namespace_stack.test_force(outputs, 'outputs')
-            loss = loss_function(outputs, labels)
-            flor.namespace_stack.test_force(loss, 'loss')
-            loss.backward()
-            optimizer.step()
-            print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=((batch_index * args.b) + len(images)), total_samples=len(cifar100_training_loader.dataset)))
+                labels = Variable(labels)
+                flor.namespace_stack.test_force(labels, 'labels')
+                if torch.cuda.is_available():
+                    labels = labels.cuda()
+                    flor.namespace_stack.test_force(labels, 'labels')
+                    images = images.cuda()
+                    flor.namespace_stack.test_force(images, 'images')
+                optimizer.zero_grad()
+                outputs = net(images)
+                flor.namespace_stack.test_force(outputs, 'outputs')
+                loss = loss_function(outputs, labels)
+                flor.namespace_stack.test_force(loss, 'loss')
+                loss.backward()
+                optimizer.step()
+                print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=((batch_index * args.b) + len(images)), total_samples=len(cifar100_training_loader.dataset)))
+        (_, _) = flor.skip_stack.pop().proc_side_effects(clr_scheduler, optimizer)
     finally:
         flor.namespace_stack.pop()
 
