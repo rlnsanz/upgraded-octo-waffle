@@ -118,4 +118,5 @@ if (__name__ == '__main__'):
         print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
         epoch += 1
     print('------- {} seconds ---------'.format((time.time() - start_time)))
-    flor.flush()
+    if not flor.SKIP:
+        flor.flush()
