@@ -16,11 +16,15 @@ from torch.autograd import Variable
 from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler, Dynamic_CLR_Scheduler
 
+import ray
+ray.init()
+
+
 def train(epoch):
     try:
         flor.namespace_stack.new()
         net.train()
-        flor.skip_stack.new()
+        flor.skip_stack.new(0)
         if flor.skip_stack.peek().should_execute((not flor.SKIP)):
             for (batch_index, (images, labels)) in enumerate(cifar100_training_loader):
                 clr_scheduler.step()
@@ -53,7 +57,7 @@ def eval_training(epoch):
         flor.namespace_stack.test_force(test_loss, 'test_loss')
         correct = 0.0
         flor.namespace_stack.test_force(correct, 'correct')
-        flor.skip_stack.new()
+        flor.skip_stack.new(1)
         if flor.skip_stack.peek().should_execute((not flor.SKIP)):
             for (images, labels) in cifar100_test_loader:
                 images = Variable(images)
@@ -79,10 +83,12 @@ def eval_training(epoch):
     finally:
         flor.namespace_stack.pop()
 
-def do_epoch_step(epoch):
-    train(epoch)
-    (loss, acc) = eval_training(epoch)
-    print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
+@ray.remote(num_gpus=8)
+def do_partition(partition):
+    for epoch in partition:
+        train(epoch)
+        (loss, acc) = eval_training(epoch)
+        print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
 
 def do_epoch_dummy(epoch):
     print(epoch)
