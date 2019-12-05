@@ -125,6 +125,7 @@ def do_partition(partition, device_id, user_settings):
     if predecessors_epoch >= 0:
         # Initialize the Previous Epoch
         print("LENGTH: {}".format(len(flor.writer.Writer.partitioned_store_load)))
+        print("LENGTH OF STORELOAD: {}".format(len(flor.writer.Writer.store_load)))
         print("predecessor epoch: {}".format(predecessors_epoch))
         flor.writer.Writer.store_load = flor.writer.Writer.partitioned_store_load[predecessors_epoch]
         train(predecessors_epoch)
