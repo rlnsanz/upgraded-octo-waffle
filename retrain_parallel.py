@@ -19,6 +19,11 @@ from utils import get_network, get_training_dataloader, get_test_dataloader, War
 import ray
 ray.init()
 
+def flor_writer(device_id):
+    def write(s):
+        with open("flor_output_{}.txt".format(device_id), 'a') as f:
+            f.write(s + '\n')
+    return write
 
 def train(epoch):
     try:
@@ -44,7 +49,7 @@ def train(epoch):
                 flor.namespace_stack.test_force(loss, 'loss')
                 loss.backward()
                 optimizer.step()
-                print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=((batch_index * args.b) + len(images)), total_samples=len(cifar100_training_loader.dataset)))
+                fprint('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=((batch_index * args.b) + len(images)), total_samples=len(cifar100_training_loader.dataset)))
         (_, _) = flor.skip_stack.pop().proc_side_effects(clr_scheduler, optimizer)
     finally:
         flor.namespace_stack.pop()
@@ -84,14 +89,35 @@ def eval_training(epoch):
         flor.namespace_stack.pop()
 
 @ray.remote(num_gpus=8)
-def do_partition(partition):
-    for epoch in partition:
-        train(epoch)
-        (loss, acc) = eval_training(epoch)
-        print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
+def do_partition(partition, device_id):
+    global net, optimizer, clr_scheduler, loss_function, fprint
+    predecessors_epoch = partition[0] - 1
+    fprint = flor_writer(device_id)
 
-def do_epoch_dummy(epoch):
-    print(epoch)
+    with torch.cuda.device(device_id):
+        # Do the general initialization
+        net = get_network(args, use_gpu=args.gpu)
+        flor.namespace_stack.test_force(net, 'net')
+        loss_function = nn.CrossEntropyLoss()
+        flor.namespace_stack.test_force(loss_function, 'loss_function')
+        optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)
+        flor.namespace_stack.test_force(optimizer, 'optimizer')
+        clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr,
+                                      max_lr=3.0, tail_frac=0.0)
+        flor.namespace_stack.test_force(clr_scheduler, 'clr_scheduler')
+
+        if predecessors_epoch >= 0:
+            # Initialize the Previous Epoch
+            flor.writer.Writer.store_load = flor.writer.Writer.partitioned_store_load[predecessors_epoch]
+            train(predecessors_epoch)
+            eval_training(predecessors_epoch)
+
+        flor.SKIP = False
+        for epoch in partition:
+            train(epoch)
+            (loss, acc) = eval_training(epoch)
+            fprint('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
+
 
 if (__name__ == '__main__'):
     parser = argparse.ArgumentParser()
@@ -105,26 +131,12 @@ if (__name__ == '__main__'):
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     args = parser.parse_args()
     flor.namespace_stack.test_force(args, 'args')
-    net = get_network(args, use_gpu=args.gpu)
-    flor.namespace_stack.test_force(net, 'net')
+
     cifar100_training_loader = get_training_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, num_workers=args.w, batch_size=args.b, shuffle=args.s)
-    flor.namespace_stack.test_force(cifar100_training_loader, 'cifar100_training_loader')
     cifar100_test_loader = get_test_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, num_workers=args.w, batch_size=args.b, shuffle=args.s)
-    flor.namespace_stack.test_force(cifar100_test_loader, 'cifar100_test_loader')
     iter_per_epoch = len(cifar100_training_loader)
-    flor.namespace_stack.test_force(iter_per_epoch, 'iter_per_epoch')
-    loss_function = nn.CrossEntropyLoss()
-    flor.namespace_stack.test_force(loss_function, 'loss_function')
-    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)
-    flor.namespace_stack.test_force(optimizer, 'optimizer')
-    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0, tail_frac=0.0)
-    flor.namespace_stack.test_force(clr_scheduler, 'clr_scheduler')
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
-    flor.namespace_stack.test_force(checkpoint_path, 'checkpoint_path')
     best_acc = 0.0
-    flor.namespace_stack.test_force(best_acc, 'best_acc')
-    epoch = 1
-    flor.namespace_stack.test_force(epoch, 'epoch')
 
     import math
     iterator = range(settings.EPOCH)
@@ -148,10 +160,8 @@ if (__name__ == '__main__'):
      range(18, 20)]
     """
 
-    for partition in partitions:
-        for _ in partition:
-            do_epoch_dummy(epoch)
-            epoch += 1
+    futures = [do_partition.remote(p, i) for i,p in enumerate(partitions)]
+    ray.get(futures)
+
     print('------- {} seconds ---------'.format((time.time() - start_time)))
-    if not flor.SKIP:
-        flor.flush()
+
