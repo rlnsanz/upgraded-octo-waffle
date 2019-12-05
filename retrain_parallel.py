@@ -17,7 +17,7 @@ from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler, Dynamic_CLR_Scheduler
 
 import ray
-ray.init()
+
 
 def flor_writer(device_id):
     def write(s):
@@ -139,6 +139,7 @@ def do_partition(partition, device_id, user_settings):
     torch.cuda.empty_cache()
 
 if (__name__ == '__main__'):
+    ray.init()
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
