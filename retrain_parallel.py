@@ -88,15 +88,29 @@ def eval_training(epoch):
     finally:
         flor.namespace_stack.pop()
 
+class A: pass
+
+args = A()
+args.net = 'resnet18'
+args.lr = 0.1
+args.b = 128
+
+
 @ray.remote(num_gpus=8)
-def do_partition(partition, device_id):
-    global net, optimizer, clr_scheduler, loss_function, fprint
+def do_partition(partition, device_id, user_settings):
+    global net, optimizer, clr_scheduler, loss_function, iter_per_epoch, cifar100_training_loader, cifar100_test_loader, fprint
+    flor.initialize(**user_settings)
     predecessors_epoch = partition[0] - 1
     fprint = flor_writer(device_id)
 
     with torch.cuda.device(device_id):
         # Do the general initialization
-        net = get_network(args, use_gpu=args.gpu)
+        cifar100_training_loader = get_training_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
+                                                           num_workers=2, batch_size=128, shuffle=True)
+        cifar100_test_loader = get_test_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
+                                                   num_workers=2, batch_size=128, shuffle=True)
+        iter_per_epoch = len(cifar100_training_loader)
+        net = get_network(args, use_gpu=True)
         flor.namespace_stack.test_force(net, 'net')
         loss_function = nn.CrossEntropyLoss()
         flor.namespace_stack.test_force(loss_function, 'loss_function')
@@ -118,10 +132,8 @@ def do_partition(partition, device_id):
             (loss, acc) = eval_training(epoch)
             fprint('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
 
-
 if (__name__ == '__main__'):
     parser = argparse.ArgumentParser()
-    flor.namespace_stack.test_force(parser, 'parser')
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
     parser.add_argument('-w', type=int, default=2, help='number of workers for dataloader')
@@ -130,11 +142,7 @@ if (__name__ == '__main__'):
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     args = parser.parse_args()
-    flor.namespace_stack.test_force(args, 'args')
 
-    cifar100_training_loader = get_training_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, num_workers=args.w, batch_size=args.b, shuffle=args.s)
-    cifar100_test_loader = get_test_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, num_workers=args.w, batch_size=args.b, shuffle=args.s)
-    iter_per_epoch = len(cifar100_training_loader)
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
     best_acc = 0.0
 
@@ -160,7 +168,7 @@ if (__name__ == '__main__'):
      range(18, 20)]
     """
 
-    futures = [do_partition.remote(p, i) for i,p in enumerate(partitions)]
+    futures = [do_partition.remote(p, i, flor.user_settings) for i,p in enumerate(partitions)]
     ray.get(futures)
 
     print('------- {} seconds ---------'.format((time.time() - start_time)))
