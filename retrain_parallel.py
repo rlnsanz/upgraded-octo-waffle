@@ -21,7 +21,7 @@ ray.init()
 
 def flor_writer(device_id):
     def write(s):
-        with open("flor_output_{}.txt".format(device_id), 'a') as f:
+        with open("/data/rogarcia/flor_output/flor_output_{}.txt".format(device_id), 'a') as f:
             f.write(s + '\n')
     return write
 
