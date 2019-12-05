@@ -139,7 +139,7 @@ def do_partition(partition, device_id, user_settings):
     torch.cuda.empty_cache()
 
 if (__name__ == '__main__'):
-    ray.init()
+    ray.init(redis_password=".")
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
