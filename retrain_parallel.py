@@ -95,42 +95,46 @@ args.net = 'resnet18'
 args.lr = 0.1
 args.b = 128
 
+cifar100_training_loader = get_training_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
+                                                   num_workers=2, batch_size=128, shuffle=True)
+cifar100_test_loader = get_test_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
+                                           num_workers=2, batch_size=128, shuffle=True)
+iter_per_epoch = len(cifar100_training_loader)
 
-@ray.remote(num_gpus=8)
+
+@ray.remote(num_cpus=2, num_gpus=1)
 def do_partition(partition, device_id, user_settings):
-    global net, optimizer, clr_scheduler, loss_function, iter_per_epoch, cifar100_training_loader, cifar100_test_loader, fprint
-    flor.initialize(**user_settings)
+    global net, optimizer, clr_scheduler, loss_function, fprint
+    if not flor.is_initialized():
+        flor.initialize(**user_settings)
     predecessors_epoch = partition[0] - 1
     fprint = flor_writer(device_id)
 
-    with torch.cuda.device(device_id):
-        # Do the general initialization
-        cifar100_training_loader = get_training_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
-                                                           num_workers=2, batch_size=128, shuffle=True)
-        cifar100_test_loader = get_test_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
-                                                   num_workers=2, batch_size=128, shuffle=True)
-        iter_per_epoch = len(cifar100_training_loader)
-        net = get_network(args, use_gpu=True)
-        flor.namespace_stack.test_force(net, 'net')
-        loss_function = nn.CrossEntropyLoss()
-        flor.namespace_stack.test_force(loss_function, 'loss_function')
-        optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)
-        flor.namespace_stack.test_force(optimizer, 'optimizer')
-        clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr,
-                                      max_lr=3.0, tail_frac=0.0)
-        flor.namespace_stack.test_force(clr_scheduler, 'clr_scheduler')
+    # Do the general initialization
 
-        if predecessors_epoch >= 0:
-            # Initialize the Previous Epoch
-            flor.writer.Writer.store_load = flor.writer.Writer.partitioned_store_load[predecessors_epoch]
-            train(predecessors_epoch)
-            eval_training(predecessors_epoch)
+    net = get_network(args, use_gpu=True)
+    flor.namespace_stack.test_force(net, 'net')
+    loss_function = nn.CrossEntropyLoss()
+    flor.namespace_stack.test_force(loss_function, 'loss_function')
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)
+    flor.namespace_stack.test_force(optimizer, 'optimizer')
+    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr,
+                                  max_lr=3.0, tail_frac=0.0)
+    flor.namespace_stack.test_force(clr_scheduler, 'clr_scheduler')
 
-        flor.SKIP = False
-        for epoch in partition:
-            train(epoch)
-            (loss, acc) = eval_training(epoch)
-            fprint('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
+    if predecessors_epoch >= 0:
+        # Initialize the Previous Epoch
+        flor.writer.Writer.store_load = flor.writer.Writer.partitioned_store_load[predecessors_epoch]
+        train(predecessors_epoch)
+        eval_training(predecessors_epoch)
+
+    flor.SKIP = False
+    for epoch in partition:
+        train(epoch)
+        (loss, acc) = eval_training(epoch)
+        fprint('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
+
+    torch.cuda.empty_cache()
 
 if (__name__ == '__main__'):
     parser = argparse.ArgumentParser()
