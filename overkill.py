@@ -27,10 +27,10 @@ def train(epoch):
     try:
         flor.namespace_stack.new()
         net.train()
-        flor.skip_stack.new()
+        flor.skip_stack.new(0)
         if flor.skip_stack.peek().should_execute((not flor.SKIP)):
             for (batch_index, (images, labels)) in enumerate(cifar100_training_loader):
-                flor.skip_stack.new()
+                flor.skip_stack.new(1)
                 if flor.skip_stack.peek().should_execute((not flor.SKIP)):
                     clr_scheduler.step()
                     images = Variable(images)
@@ -63,10 +63,10 @@ def eval_training(epoch):
         flor.namespace_stack.test_force(test_loss, 'test_loss')
         correct = 0.0
         flor.namespace_stack.test_force(correct, 'correct')
-        flor.skip_stack.new()
+        flor.skip_stack.new(2)
         if flor.skip_stack.peek().should_execute((not flor.SKIP)):
             for (images, labels) in cifar100_test_loader:
-                flor.skip_stack.new()
+                flor.skip_stack.new(3)
                 if flor.skip_stack.peek().should_execute((not flor.SKIP)):
                     images = Variable(images)
                     flor.namespace_stack.test_force(images, 'images')
