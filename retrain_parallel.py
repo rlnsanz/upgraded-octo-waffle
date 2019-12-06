@@ -103,7 +103,7 @@ iter_per_epoch = len(cifar100_training_loader)
 
 
 @ray.remote(num_cpus=2, num_gpus=1)
-def do_partition(partition, device_id, user_settings):
+def do_partition(partition, device_id, user_settings, partitioned_store_load):
     global net, optimizer, clr_scheduler, loss_function, fprint
     if not flor.is_initialized():
         flor.initialize(**user_settings)
@@ -124,10 +124,13 @@ def do_partition(partition, device_id, user_settings):
 
     if predecessors_epoch >= 0:
         # Initialize the Previous Epoch
+        print("MEMO: {}".format(flor.stateful.MEMO_PATH))
+        print("MODE: {}".format(flor.stateful.MODE))
+        print("Initialized: {}".format(flor.writer.Writer.initialized))
         print("LENGTH: {}".format(len(flor.writer.Writer.partitioned_store_load)))
         print("LENGTH OF STORELOAD: {}".format(len(flor.writer.Writer.store_load)))
         print("predecessor epoch: {}".format(predecessors_epoch))
-        flor.writer.Writer.store_load = flor.writer.Writer.partitioned_store_load[predecessors_epoch]
+        flor.writer.Writer.store_load = partitioned_store_load
         train(predecessors_epoch)
         eval_training(predecessors_epoch)
 
@@ -140,7 +143,7 @@ def do_partition(partition, device_id, user_settings):
     torch.cuda.empty_cache()
 
 if (__name__ == '__main__'):
-    ray.init(redis_password=".")
+    ray.init(redis_password="pa-pa-password")
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
@@ -176,7 +179,7 @@ if (__name__ == '__main__'):
      range(18, 20)]
     """
 
-    futures = [do_partition.remote(p, i, flor.user_settings) for i,p in enumerate(partitions)]
+    futures = [do_partition.remote(p, i, flor.user_settings, flor.writer.Writer.partitioned_store_load[max(p[0] - 1, 0)]) for i,p in enumerate(partitions)]
     ray.get(futures)
 
     print('------- {} seconds ---------'.format((time.time() - start_time)))
