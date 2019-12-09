@@ -88,20 +88,6 @@ def eval_training(epoch):
     finally:
         flor.namespace_stack.pop()
 
-class A: pass
-
-args = A()
-args.net = 'resnet18'
-args.lr = 0.1
-args.b = 128
-
-cifar100_training_loader = get_training_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
-                                                   num_workers=2, batch_size=128, shuffle=True)
-cifar100_test_loader = get_test_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
-                                           num_workers=2, batch_size=128, shuffle=True)
-iter_per_epoch = len(cifar100_training_loader)
-
-
 @ray.remote(num_cpus=2, num_gpus=1)
 def do_partition(partition, device_id, user_settings, partitioned_store_load):
     global net, optimizer, clr_scheduler, loss_function, fprint
@@ -124,12 +110,12 @@ def do_partition(partition, device_id, user_settings, partitioned_store_load):
 
     if predecessors_epoch >= 0:
         # Initialize the Previous Epoch
-        print("MEMO: {}".format(flor.stateful.MEMO_PATH))
-        print("MODE: {}".format(flor.stateful.MODE))
-        print("Initialized: {}".format(flor.writer.Writer.initialized))
-        print("LENGTH: {}".format(len(flor.writer.Writer.partitioned_store_load)))
-        print("LENGTH OF STORELOAD: {}".format(len(flor.writer.Writer.store_load)))
-        print("predecessor epoch: {}".format(predecessors_epoch))
+        # print("MEMO: {}".format(flor.stateful.MEMO_PATH))
+        # print("MODE: {}".format(flor.stateful.MODE))
+        # print("Initialized: {}".format(flor.writer.Writer.initialized))
+        # print("LENGTH: {}".format(len(flor.writer.Writer.partitioned_store_load)))
+        # print("LENGTH OF STORELOAD: {}".format(len(flor.writer.Writer.store_load)))
+        # print("predecessor epoch: {}".format(predecessors_epoch))
         flor.writer.Writer.store_load = partitioned_store_load
         train(predecessors_epoch)
         eval_training(predecessors_epoch)
@@ -153,6 +139,12 @@ if (__name__ == '__main__'):
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     args = parser.parse_args()
+
+    cifar100_training_loader = get_training_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
+                                                       num_workers=2, batch_size=128, shuffle=True)
+    cifar100_test_loader = get_test_dataloader(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD,
+                                               num_workers=2, batch_size=128, shuffle=True)
+    iter_per_epoch = len(cifar100_training_loader)
 
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
     best_acc = 0.0
