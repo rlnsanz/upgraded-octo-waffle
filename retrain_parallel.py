@@ -18,13 +18,6 @@ from utils import get_network, get_training_dataloader, get_test_dataloader, War
 
 import ray
 
-
-def flor_writer(device_id):
-    def write(s):
-        with open("/data/rogarcia/flor_output/flor_output_{}.txt".format(device_id), 'a') as f:
-            f.write(s + '\n')
-    return write
-
 def train(epoch):
     try:
         flor.namespace_stack.new()
@@ -90,14 +83,22 @@ def eval_training(epoch):
 
 @ray.remote(num_cpus=2, num_gpus=1)
 def do_partition(partition, device_id):
+    # You have to set the right variables as global for visibility
     global net, optimizer, clr_scheduler, loss_function, fprint
+
+    # The predecessor you load, all else is re-executed
+    predecessor_epoch = partition[0] - 1
     if not flor.is_initialized():
-        flor.initialize(**user_settings)
-    predecessors_epoch = partition[0] - 1
-    fprint = flor_writer(device_id)
+        # Ray creates a new instance of the library per worker, so we have to re-init
+        flor.initialize(**user_settings, predecessor_id=predecessor_epoch)
+
+    # This line is so parallel workers don't collide
+    fprint = flor.utils.fprint(['data', 'rogarcia', 'flor_output'], device_id)
 
     # Do the general initialization
-
+    # The code below is copy/pasteed from __main__
+    # Each worker needs to initialize its own Neural Net so it's in the right GPU
+    # Anything that goes on the GPU or reads from the GPU has to be initialized in each worker
     net = get_network(args, use_gpu=True)
     flor.namespace_stack.test_force(net, 'net')
     loss_function = nn.CrossEntropyLoss()
@@ -108,22 +109,27 @@ def do_partition(partition, device_id):
                                   max_lr=3.0, tail_frac=0.0)
     flor.namespace_stack.test_force(clr_scheduler, 'clr_scheduler')
 
-    if predecessors_epoch >= 0:
+    # Load the end state of the predecessor so we can re-execute in the middle
+    if predecessor_epoch >= 0:
         # Initialize the Previous Epoch
-        flor.writer.Writer.store_load = flor.writer.Writer.partitioned_store_load[predecessors_epoch]
-        train(predecessors_epoch)
-        eval_training(predecessors_epoch)
+        train(predecessor_epoch)
+        eval_training(predecessor_epoch)
 
-    flor.SKIP = False
+    # Re-execute in the middle
+    flor.SKIP = False   # THIS IS IMPORTANT, otherwise flor will SKIP
     for epoch in partition:
+        # This is just good old fashined re-execution
         train(epoch)
         (loss, acc) = eval_training(epoch)
         fprint('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(loss, acc))
 
+    # Clear the memory for cleanliness, this step might be optional
     torch.cuda.empty_cache()
 
 if (__name__ == '__main__'):
+    # INITIALIZE RAY INSIDE __main__, have a redis password always
     ray.init(redis_password="pa-pa-password")
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
@@ -143,15 +149,9 @@ if (__name__ == '__main__'):
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
     best_acc = 0.0
 
-    import math
-    iterator = range(settings.EPOCH)
-    NUM_GPU = 8
-    work_per_gpu = math.ceil(len(iterator) / NUM_GPU)
-    i = 0
-    partitions = []
-    while i * work_per_gpu < len(iterator):
-        partitions.append(iterator[i*work_per_gpu: (i+1)*work_per_gpu])
-        i += 1
+    # Into get_partitions, you will want to pass the iterator that you iterate over in the
+    # Outermost loop. The second arg is the number of GPUs in your machine
+    partitions = flor.utils.get_partitions(range(settings.EPOCH), 8)
 
     """
     In [27]: partitions
@@ -164,7 +164,8 @@ if (__name__ == '__main__'):
      range(15, 18),
      range(18, 20)]
     """
-    user_settings = flor.user_settings
+    user_settings = flor.user_settings # IMPORTANT: This is for re-initialization. Don't forget it
+    # Ray stuff:
     futures = [do_partition.remote(p, i) for i,p in enumerate(partitions)]
     ray.get(futures)
 
