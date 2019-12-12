@@ -120,4 +120,4 @@ if (__name__ == '__main__'):
     print('------- {} seconds ---------'.format((time.time() - start_time)))
     if not flor.SKIP:
         flor.flush()
-        flor.spooler.connect.send_to_s3()
+        flor.spooler.connect.send_to_S3()
