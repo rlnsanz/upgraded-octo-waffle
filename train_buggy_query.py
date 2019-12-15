@@ -167,6 +167,8 @@ if __name__ == '__main__':
     best_acc = 0.0                                                                          
     epoch = 1
 
+    net.train()
+
     for name, param in net.named_parameters():
         if name not in lock_grad_list3:
             param.requires_grad = False
