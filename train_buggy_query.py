@@ -41,14 +41,38 @@ lock_grad_list2 = [
     'conv5_x.1.residual_function.3.weight',
 ]
 
+lock_grad_list3 = [
+    'conv1.0.weight',
+    'conv2_x.0.residual_function.0.weight',
+    'conv2_x.0.residual_function.3.weight',
+    'conv2_x.1.residual_function.0.weight',
+    'conv2_x.1.residual_function.3.weight',
+    'conv3_x.0.residual_function.0.weight',
+    'conv3_x.0.residual_function.3.weight',
+    'conv3_x.0.shortcut.0.weight',
+    'conv3_x.1.residual_function.0.weight',
+    'conv3_x.1.residual_function.3.weight',
+    'conv4_x.0.residual_function.0.weight',
+    'conv4_x.0.residual_function.3.weight',
+    'conv4_x.0.shortcut.0.weight',
+    'conv4_x.1.residual_function.0.weight',
+    'conv4_x.1.residual_function.3.weight',
+    'conv5_x.0.residual_function.0.weight',
+    'conv5_x.0.residual_function.3.weight',
+    'conv5_x.0.residual_function.4.weight',
+    'conv5_x.0.shortcut.0.weight',
+    'conv5_x.0.shortcut.1.weight',
+    'conv5_x.1.residual_function.0.weight',
+    'conv5_x.1.residual_function.3.weight',
+    'conv5_x.1.residual_function.4.weight',
+    'fc.weight',
+
+]
+
+
 def train(epoch):
 
     net.train()
-
-    if epoch == 11:
-        for name, param in net.named_parameters():
-            if name not in lock_grad_list:
-                param.requires_grad = False
 
     for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
 
@@ -141,7 +165,12 @@ if __name__ == '__main__':
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)                                                             
 
     best_acc = 0.0                                                                          
-    epoch = 1                                                                         
+    epoch = 1
+
+    for name, param in net.named_parameters():
+        if name not in lock_grad_list3:
+            param.requires_grad = False
+
     for _ in range(settings.EPOCH):
         train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
         loss, acc = eval_training(epoch)    #changes loss, acc, net                                                  
