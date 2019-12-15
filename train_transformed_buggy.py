@@ -102,7 +102,7 @@ if (__name__ == '__main__'):
     flor.namespace_stack.test_force(iter_per_epoch, 'iter_per_epoch')
     loss_function = nn.CrossEntropyLoss()
     flor.namespace_stack.test_force(loss_function, 'loss_function')
-    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.1)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.01)
     flor.namespace_stack.test_force(optimizer, 'optimizer')
     clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0, tail_frac=0.0)
     flor.namespace_stack.test_force(clr_scheduler, 'clr_scheduler')
