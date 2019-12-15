@@ -45,9 +45,9 @@ def train(epoch):
 
     net.train()
 
-    if epoch == 10:
+    if epoch == 11:
         for name, param in net.named_parameters():
-            if name in lock_grad_list2:
+            if name not in lock_grad_list:
                 param.requires_grad = False
 
     for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
