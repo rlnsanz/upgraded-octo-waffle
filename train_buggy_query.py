@@ -24,9 +24,26 @@ from utils import get_network, get_training_dataloader, get_test_dataloader, War
 from tensorboardX import SummaryWriter
 import numpy as np
 
+lock_grad_list = [
+    'conv4_x.0.residual_function.3.weight',
+    'conv4_x.1.residual_function.0.weight',
+    'conv4_x.1.residual_function.3.weight',
+    'conv5_x.0.residual_function.0.weight',
+    'conv5_x.0.residual_function.3.weight',
+    'conv5_x.1.residual_function.0.weight',
+    'conv5_x.1.residual_function.1.weight',
+    'conv5_x.1.residual_function.3.weight',
+]
+
 def train(epoch):
 
     net.train()
+
+    if epoch == 10:
+        for name, param in net.named_parameters():
+            if name in lock_grad_list:
+                param.requires_grad = False
+
     for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
 
         clr_scheduler.step()                    # changes clr_scheduler
