@@ -22,6 +22,7 @@ from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler, Dynamic_CLR_Scheduler
 
 from tensorboardX import SummaryWriter
+import numpy as np
 
 def train(epoch):
 
@@ -39,8 +40,13 @@ def train(epoch):
         optimizer.zero_grad()                   # changes optimizer
         outputs = net(images)                   # changes outputs; not_changes net, images
         loss = loss_function(outputs, labels)   # changes loss; not_changes loss_function, outputs, labels
-        loss.register_hook(lambda grad: print(grad))
         loss.backward()                         # changes loss
+
+        d = {}
+        for name, param in net.named_parameters():
+            d[name] = np.linalg.norm(param.grad.cpu().numpy())
+        writer.add_scalars('data/layer_gradients', d, epoch * len(cifar100_training_loader) + batch_index)
+
         optimizer.step()                        # changes optimizer
 
 
