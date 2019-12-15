@@ -74,6 +74,11 @@ def train(epoch):
 
     net.train()
 
+    if epoch == 2:
+        for name, param in net.named_parameters():
+            if name not in lock_grad_list3:
+                param.requires_grad = False
+
     for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
 
         clr_scheduler.step()                    # changes clr_scheduler
@@ -167,11 +172,6 @@ if __name__ == '__main__':
     best_acc = 0.0                                                                          
     epoch = 1
 
-    net.train()
-
-    for name, param in net.named_parameters():
-        if name not in lock_grad_list3:
-            param.requires_grad = False
 
     for _ in range(settings.EPOCH):
         train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
