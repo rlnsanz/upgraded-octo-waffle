@@ -35,13 +35,19 @@ lock_grad_list = [
     'conv5_x.1.residual_function.3.weight',
 ]
 
+lock_grad_list2 = [
+    'conv5_x.0.residual_function.3.weight',
+    'conv5_x.1.residual_function.0.weight',
+    'conv5_x.1.residual_function.3.weight',
+]
+
 def train(epoch):
 
     net.train()
 
     if epoch == 10:
         for name, param in net.named_parameters():
-            if name in lock_grad_list:
+            if name in lock_grad_list2:
                 param.requires_grad = False
 
     for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
