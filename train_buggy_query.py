@@ -74,11 +74,6 @@ def train(epoch):
 
     net.train()
 
-    if epoch == 2:
-        for name, param in net.named_parameters():
-            if name not in lock_grad_list3:
-                param.requires_grad = False
-
     for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
 
         clr_scheduler.step()                    # changes clr_scheduler
@@ -165,7 +160,7 @@ if __name__ == '__main__':
 
     iter_per_epoch = len(cifar100_training_loader)                                       
     loss_function = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)         
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.1)         
     clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0, tail_frac=0.0) #memoize?
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)                                                             
 
