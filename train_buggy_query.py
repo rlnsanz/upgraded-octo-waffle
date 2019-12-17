@@ -90,10 +90,14 @@ def train(epoch):
         loss.backward()                         # changes loss
 
         d = {}
+        e = {}
         for name, param in net.named_parameters():
             d[name] = np.linalg.norm(param.grad.cpu().numpy())
+            e[name] = np.linalg.norm(param.cpu().detach().numpy())
         writer.add_scalars('data/layer_gradients', d, epoch * len(cifar100_training_loader) + batch_index)
 
+        writer.add_scalars('data/layer_weights', e, epoch * len(cifar100_training_loader) + batch_index)
+        
         optimizer.step()                        # changes optimizer
 
 
