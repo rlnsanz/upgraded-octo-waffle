@@ -128,7 +128,7 @@ def do_partition(partition, device_id):
 
 if (__name__ == '__main__'):
     # INITIALIZE RAY INSIDE __main__, have a redis password always
-    ray.init(redis_password="pa-pa-password")
+    ray.init(redis_password="pa-pa-password", num_gpus=8)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
