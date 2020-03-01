@@ -4,6 +4,7 @@ author baiyu
 """
 
 import sys
+import os
 
 import numpy
 
@@ -14,6 +15,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
 #from dataset import CIFAR100Train, CIFAR100Test
+
 
 def get_network(args, use_gpu=True):
     """ return given network
@@ -125,13 +127,13 @@ def get_network(args, use_gpu=True):
         from models.senet import seresnet18
         net = seresnet18()
     elif args.net == 'seresnet34':
-        from models.senet import seresnet34 
+        from models.senet import seresnet34
         net = seresnet34()
     elif args.net == 'seresnet50':
-        from models.senet import seresnet50 
+        from models.senet import seresnet50
         net = seresnet50()
     elif args.net == 'seresnet101':
-        from models.senet import seresnet101 
+        from models.senet import seresnet101
         net = seresnet101()
     elif args.net == 'seresnet152':
         from models.senet import seresnet152
@@ -140,14 +142,14 @@ def get_network(args, use_gpu=True):
     else:
         print('the network name you have entered is not supported yet')
         sys.exit()
-    
+
     if use_gpu and torch.cuda.is_available():
         net = net.cuda()
 
     return net
 
 
-def get_training_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True):
+def get_training_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True, dataset='cifar100'):
     """ return training dataloader
     Args:
         mean: mean of cifar100 training dataset
@@ -155,26 +157,51 @@ def get_training_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=Tru
         path: path to cifar100 training python dataset
         batch_size: dataloader batchsize
         num_workers: dataloader num_works
-        shuffle: whether to shuffle 
+        shuffle: whether to shuffle
     Returns: train_data_loader:torch dataloader object
     """
+    if dataset not in ['cifar100', 'imagenet']:
+        assert False, f"{dataset} not supported!"
 
-    transform_train = transforms.Compose([
-        #transforms.ToPILImage(),
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
-        transforms.ToTensor(),
-        transforms.Normalize(mean, std)
-    ])
-    #cifar100_training = CIFAR100Train(path, transform=transform_train)
-    cifar100_training = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform_train)
-    cifar100_training_loader = DataLoader(
-        cifar100_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
+    if dataset == 'cifar100':
+        transform_train = transforms.Compose([
+            # transforms.ToPILImage(),
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ])
+        #cifar100_training = CIFAR100Train(path, transform=transform_train)
+        cifar100_training = torchvision.datasets.CIFAR100(
+            root='./data', train=True, download=True, transform=transform_train
+        )
+        cifar100_training_loader = DataLoader(
+            cifar100_training,
+            shuffle=shuffle, num_workers=num_workers, batch_size=batch_size
+        )
 
-    return cifar100_training_loader
+        return cifar100_training_loader
 
-def get_test_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True):
+    elif dataset == 'imagenet':
+        imagenet_training = torchvision.datasets.ImageFolder(
+            os.path.join("~/upgraded-octo-waffle/data/imagenet", 'train'),
+            transforms.Compose([
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+            ])
+        )
+        imagenet_training_loader = DataLoader(
+            imagenet_training,
+            shuffle=shuffle, num_workers=num_workers, batch_size=batch_size
+        )
+        return imagenet_training_loader
+
+
+def get_test_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True, dataset='cifar100'):
     """ return training dataloader
     Args:
         mean: mean of cifar100 test dataset
@@ -182,38 +209,68 @@ def get_test_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True):
         path: path to cifar100 test python dataset
         batch_size: dataloader batchsize
         num_workers: dataloader num_works
-        shuffle: whether to shuffle 
+        shuffle: whether to shuffle
     Returns: cifar100_test_loader:torch dataloader object
     """
 
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean, std)
-    ])
-    #cifar100_test = CIFAR100Test(path, transform=transform_test)
-    cifar100_test = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_test)
-    cifar100_test_loader = DataLoader(
-        cifar100_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
+    if dataset not in ['cifar100', 'imagenet']:
+        assert False, f"{dataset} not supported!"
 
-    return cifar100_test_loader
+    if dataset == 'cifar100':
+
+        transform_test = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ])
+        #cifar100_test = CIFAR100Test(path, transform=transform_test)
+        cifar100_test = torchvision.datasets.CIFAR100(
+            root='./data', train=False, download=True, transform=transform_test)
+        cifar100_test_loader = DataLoader(
+            cifar100_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size
+        )
+
+        return cifar100_test_loader
+
+    elif dataset == 'imagenet':
+        imagenet_test = torchvision.datasets.ImageFolder(
+            os.path.join("~/upgraded-octo-waffle/data/imagenet", 'val'),
+            transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+            ])
+        )
+        imagenet_test_loader = DataLoader(
+            imagenet_test,
+            shuffle=shuffle, num_workers=num_workers, batch_size=batch_size
+        )
+
+        return imagenet_test_loader
+
 
 def compute_mean_std(cifar100_dataset):
     """compute the mean and std of cifar100 dataset
     Args:
         cifar100_training_dataset or cifar100_test_dataset
         witch derived from class torch.utils.data
-    
+
     Returns:
         a tuple contains mean, std value of entire dataset
     """
 
-    data_r = numpy.dstack([cifar100_dataset[i][1][:, :, 0] for i in range(len(cifar100_dataset))])
-    data_g = numpy.dstack([cifar100_dataset[i][1][:, :, 1] for i in range(len(cifar100_dataset))])
-    data_b = numpy.dstack([cifar100_dataset[i][1][:, :, 2] for i in range(len(cifar100_dataset))])
+    data_r = numpy.dstack([cifar100_dataset[i][1][:, :, 0]
+                           for i in range(len(cifar100_dataset))])
+    data_g = numpy.dstack([cifar100_dataset[i][1][:, :, 1]
+                           for i in range(len(cifar100_dataset))])
+    data_b = numpy.dstack([cifar100_dataset[i][1][:, :, 2]
+                           for i in range(len(cifar100_dataset))])
     mean = numpy.mean(data_r), numpy.mean(data_g), numpy.mean(data_b)
     std = numpy.std(data_r), numpy.std(data_g), numpy.std(data_b)
 
     return mean, std
+
 
 class WarmUpLR(_LRScheduler):
     """warmup_training learning rate scheduler
@@ -221,8 +278,9 @@ class WarmUpLR(_LRScheduler):
         optimizer: optimzier(e.g. SGD)
         total_iters: totoal_iters of warmup phase
     """
+
     def __init__(self, optimizer, total_iters, last_epoch=-1):
-        
+
         self.total_iters = total_iters
         super().__init__(optimizer, last_epoch)
 
@@ -231,6 +289,7 @@ class WarmUpLR(_LRScheduler):
         rate to base_lr * m / total_iters
         """
         return [base_lr * self.last_epoch / (self.total_iters + 1e-8) for base_lr in self.base_lrs]
+
 
 class CLR_Scheduler(_LRScheduler):
     def __init__(self, optimizer, net_steps, min_lr, max_lr, last_epoch=-1, repeat_factor=1, tail_frac=0.5):
@@ -248,19 +307,20 @@ class CLR_Scheduler(_LRScheduler):
         # The +1 is because get_lr is called in super().__init__
         tail_step_size = int(net_steps * tail_frac)
         step_size = int((net_steps - tail_step_size) / 2)
-        self.lr_schedule = [min_lr,] + list(
+        self.lr_schedule = [min_lr, ] + list(
             numpy.repeat(list(
                 numpy.linspace(min_lr, max_lr, int(numpy.ceil(step_size / repeat_factor)), endpoint=False)) +
-                         list(
-                             numpy.linspace(max_lr, min_lr, int(numpy.floor(step_size / repeat_factor)))),
-                         repeat_factor))
+                list(
+                numpy.linspace(max_lr, min_lr, int(numpy.floor(step_size / repeat_factor)))),
+                repeat_factor))
         tail_step_size = net_steps - len(self.lr_schedule) + 1
-        self.lr_schedule += list(numpy.linspace(min_lr, min_lr/4, tail_step_size))
+        self.lr_schedule += list(numpy.linspace(min_lr,
+                                                min_lr / 4, tail_step_size))
         assert len(self.lr_schedule) == net_steps + 1
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
-        return [self.lr_schedule.pop(0),]
+        return [self.lr_schedule.pop(0), ]
 
     def loop_next(self, prev_accuracy):
         return len(self.lr_schedule) > 0
@@ -274,20 +334,22 @@ class Dynamic_CLR_Scheduler(_LRScheduler):
         self.min_lr = min_lr
         self.max_lr = max_lr
 
-        self.lr_schedule = [min_lr,] + self.get_lr_schedule()
+        self.lr_schedule = [min_lr, ] + self.get_lr_schedule()
 
         self.acc_mem = []
         self.target = target
         super().__init__(optimizer)
 
     def get_lr_schedule(self):
-        lr_sched = list(numpy.linspace(self.min_lr, self.max_lr, int(self.step_size), endpoint=False)) +list(numpy.linspace(self.max_lr, self.min_lr, int(numpy.ceil(self.step_size))))
-        lr_sched += list(numpy.linspace(self.min_lr, self.min_lr/2, self.epoch_per_tail * self.iter_per_epoch))
+        lr_sched = list(numpy.linspace(self.min_lr, self.max_lr, int(self.step_size), endpoint=False)) + \
+            list(numpy.linspace(self.max_lr, self.min_lr,
+                                int(numpy.ceil(self.step_size))))
+        lr_sched += list(numpy.linspace(self.min_lr, self.min_lr /
+                                        2, self.epoch_per_tail * self.iter_per_epoch))
         return lr_sched
 
-
     def get_lr(self):
-        return [self.lr_schedule.pop(0),]
+        return [self.lr_schedule.pop(0), ]
 
     def loop_next(self, prev_accuracy):
         if prev_accuracy is None:
@@ -307,14 +369,10 @@ class Dynamic_CLR_Scheduler(_LRScheduler):
                 # We're making progress and should continue our trend
                 if numpy.array(list(map(lambda x: float(x), self.acc_mem))).std() > epsilon:
                     self.acc_mem = []
-                    self.lr_schedule = list(numpy.linspace(self.min_lr, self.min_lr/2, self.epoch_per_tail * self.iter_per_epoch))
+                    self.lr_schedule = list(numpy.linspace(
+                        self.min_lr, self.min_lr / 2, self.epoch_per_tail * self.iter_per_epoch))
                 # We're not making progress and should jolt
                 else:
                     self.acc_mem = []
                     self.lr_schedule = self.get_lr_schedule()
                 return True
-
-
-
-
-

@@ -20,11 +20,12 @@ from torch.autograd import Variable
 
 from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler, Dynamic_CLR_Scheduler
+import pdb
 
 def train(epoch):
 
     net.train()
-    for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
+    for batch_index, (images, labels) in enumerate(imagenet_train_loader): #batch_index, images, labels shadowed at end of loop
 
         clr_scheduler.step()                    # changes clr_scheduler
         images = Variable(images)               # changes images:out; not_changes Variable, images:in
@@ -40,7 +41,7 @@ def train(epoch):
         loss.backward()                         # changes loss
         optimizer.step()                        # changes optimizer
 
-        print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=batch_index * args.b + len(images), total_samples=len(cifar100_training_loader.dataset)))                                      # Could have side-effects, and I can't analyze them, so I should replay it
+        print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=batch_index * args.b + len(images), total_samples=len(imagenet_train_loader.dataset)))                                      # Could have side-effects, and I can't analyze them, so I should replay it
 
 
 def eval_training(epoch):
@@ -49,7 +50,7 @@ def eval_training(epoch):
     test_loss = 0.0
     correct = 0.0
 
-    for (images, labels) in cifar100_test_loader:
+    for (images, labels) in imagenet_val_loader:
         images = Variable(images)                                   # changes images
         labels = Variable(labels)                                   # changes labels
 
@@ -64,7 +65,7 @@ def eval_training(epoch):
         correct += preds.eq(labels).sum()                           # changes correct
 
 
-    return test_loss / len(cifar100_test_loader.dataset), correct.float() / len(cifar100_test_loader.dataset)
+    return test_loss / len(imagenet_val_loader.dataset), correct.float() / len(imagenet_val_loader.dataset)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -78,25 +79,28 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     net = get_network(args, use_gpu=args.gpu)
-    
-    #data preprocessing:
-    cifar100_training_loader = get_training_dataloader(
-        settings.CIFAR100_TRAIN_MEAN,
-        settings.CIFAR100_TRAIN_STD,
+
+    # Data Preprocessing
+
+    imagenet_train_loader = get_training_dataloader(
+        None,
+        None,
         num_workers=args.w,
         batch_size=args.b,
-        shuffle=args.s
+        shuffle=args.s,
+        dataset='imagenet'
     )
 
-    cifar100_test_loader = get_test_dataloader(
-        settings.CIFAR100_TRAIN_MEAN,
-        settings.CIFAR100_TRAIN_STD,
+    imagenet_val_loader = get_test_dataloader(
+        None,
+        None,
         num_workers=args.w,
         batch_size=args.b,
-        shuffle=args.s
+        shuffle=args.s,
+        dataset='imagenet'
     )
 
-    iter_per_epoch = len(cifar100_training_loader)
+    iter_per_epoch = len(imagenet_train_loader)
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)
     clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0, tail_frac=0.0) #memoize?
@@ -104,7 +108,7 @@ if __name__ == '__main__':
 
     best_acc = 0.0
     epoch = 1
-    for _ in range(settings.EPOCH):
+    for _ in range(8):
         train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
         loss, acc = eval_training(epoch)    #changes loss, acc, net
 
