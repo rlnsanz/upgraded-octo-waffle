@@ -75,7 +75,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')           
-    args = parser.parse_args()
+    args = parser.parse_args()                                                                 
 
     net = get_network(args, use_gpu=args.gpu)                                                  
         
@@ -105,7 +105,10 @@ if __name__ == '__main__':
     best_acc = 0.0
     for epoch in range(settings.EPOCH):
         train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
-        loss, acc = eval_training(epoch)    #changes loss, acc, net                                                  
+        torch.save(net.state_dict(), f'net_{epoch}.pt')
+        torch.save(optimizer.state_dict(), f'opt_{epoch}.pt')
+        torch.save(clr_scheduler.state_dict(), f'clrsched_{epoch}.pt')
+        loss, acc = eval_training(epoch)    #changes loss, acc, net
 
         print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
             loss,

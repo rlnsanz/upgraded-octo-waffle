@@ -75,7 +75,8 @@ if __name__ == '__main__':
     parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')           
-    args = parser.parse_args()
+    args = parser.parse_args()                                                                 
+
 
     net = get_network(args, use_gpu=args.gpu)                                                  
         
