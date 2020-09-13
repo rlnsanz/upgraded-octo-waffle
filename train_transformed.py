@@ -134,17 +134,14 @@ if __name__ == '__main__':
     flor.namespace_stack.test_force(checkpoint_path, 'checkpoint_path')
     best_acc = 0.0
     flor.namespace_stack.test_force(best_acc, 'best_acc')
-    epoch = 1
-    flor.namespace_stack.test_force(epoch, 'epoch')
     flor.skip_stack.new(2, 0)
-    for _ in range(settings.EPOCH):
+    for epoch in range(settings.EPOCH):
         train(epoch)
         loss, acc = eval_training(epoch)
         flor.namespace_stack.test_force(loss, 'loss')
         flor.namespace_stack.test_force(acc, 'acc')
         print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
             loss, acc))
-        epoch += 1
     flor.skip_stack.pop()
     print('------- {} seconds ---------'.format(time.time() - start_time))
     if not flor.SKIP:

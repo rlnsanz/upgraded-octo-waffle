@@ -1,6 +1,6 @@
-import flor
 import time
 start_time = time.time()
+import flor
 import os
 import sys
 import argparse
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     best_acc = 0.0
     flor.namespace_stack.test_force(best_acc, 'best_acc')
     flor.skip_stack.new(2, 0)
-    for epoch in flor.partition(range(settings.EPOCH), flor.PID, flor.NPARTS):
+    for epoch in flor.parallelize(range(settings.EPOCH), 2, 4):
         train(epoch)
         loss, acc = eval_training(epoch)
         flor.namespace_stack.test_force(loss, 'loss')
