@@ -41,6 +41,7 @@ def train(epoch):
         optimizer.step()                        # changes optimizer
 
         print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=batch_index * args.b + len(images), total_samples=len(cifar100_training_loader.dataset)))                                      # Could have side-effects, and I can't analyze them, so I should replay it
+        print([p.grad for p in net.parameters()])
 
 
 def eval_training(epoch):
