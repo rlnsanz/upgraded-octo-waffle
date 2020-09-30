@@ -13,7 +13,9 @@ echo "STARTING TIMING RUN AT $start_fmt"
 
 # run benchmark
 
-echo "running benchmark"
+echo "running benchmark 1/2"
+./run.sh $1 $2
+echo "running benchmark 2/2"
 ./run.sh $1 $2
 
 sleep 3
