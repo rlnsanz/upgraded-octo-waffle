@@ -8,4 +8,4 @@ CHECKPOINT_DIR=$(CURRDIR)/checkpoints
 RESULT_DIR=$(CURRDIR)/results
 
 all:
-	NV_GPU=$(G) ./run_and_time.sh $(M) $(G) | tee benchmark-$(NOW).log
+	CUDA_VISIBLE_DEVICES=$(G) ./run_and_time.sh $(M) $(G) | tee benchmark-$(NOW).log
