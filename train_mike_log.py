@@ -44,14 +44,14 @@ def train(epoch):
 
         # LOG ACTIVATIONS
         for k in net.activations:
-            my_logger.write(f"{k} -- {cloudpickle.dumps(net.activations[k])}\n")
+            my_logger.write(f"{k} -- {torch.norm(net.activations[k])}\n")
 
         for i, p in enumerate(net.parameters()):
             # LOG WEIGHTS
-            my_logger.write(f"{i} -- {p.size()} -- {cloudpickle.dumps(p)}\n")
+            my_logger.write(f"{i} -- {p.size()} -- {torch.norm(p)}\n")
             # LOG GRADIENTS
             if p.requires_grad:
-                my_logger.write(f"{i} -- {p.grad.size()} -- {cloudpickle.dumps(p.grad)}\n")
+                my_logger.write(f"{i} -- {p.grad.size()} -- {torch.norm(p.grad)}\n")
 
         print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=batch_index * args.b + len(images), total_samples=len(cifar100_training_loader.dataset)))                                      # Could have side-effects, and I can't analyze them, so I should replay it
     my_logger.flush()
