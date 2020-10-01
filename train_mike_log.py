@@ -118,7 +118,7 @@ if __name__ == '__main__':
     for epoch in range(settings.EPOCH):
         train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
         torch.save(net.state_dict(), os.path.join(checkpoint_path, f'net_{epoch}.pt'))
-        torch.save(optimizer.state_dict(), os.path.join(checkpoint_path, f'opt_{epoch}.pt'))`
+        torch.save(optimizer.state_dict(), os.path.join(checkpoint_path, f'opt_{epoch}.pt'))
         torch.save(clr_scheduler.state_dict(), os.path.join(checkpoint_path, f'clrsched_{epoch}.pt'))
         loss, acc = eval_training(epoch)    #changes loss, acc, net
 
