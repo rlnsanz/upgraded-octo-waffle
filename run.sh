@@ -20,6 +20,13 @@ case ${1:-"base"} in
     cp train_manualchkpt.py train.py
     ;;
 
+    mike)
+    MOUD=''
+    MODEL="${MODEL}log"
+    cp train_mike_log.py train.py
+    ;;
+
+
     exec)
     MOUD="--flor=name:$MODEL"
     cp train_transformed.py train.py
