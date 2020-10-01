@@ -95,3 +95,71 @@ class SqueezeNet(nn.Module):
 
 def squeezenet(class_num=100):
     return SqueezeNet(class_num=class_num)
+
+
+class SqueezeNetLog(nn.Module):
+    """mobile net with simple bypass"""
+
+    def __init__(self, class_num=100):
+        super().__init__()
+        self.stem = nn.Sequential(
+            nn.Conv2d(3, 96, 3, padding=1),
+            nn.BatchNorm2d(96),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2)
+        )
+
+        self.activations = {}
+
+        self.fire2 = Fire(96, 128, 16)
+        self.fire3 = Fire(128, 128, 16)
+        self.fire4 = Fire(128, 256, 32)
+        self.fire5 = Fire(256, 256, 32)
+        self.fire6 = Fire(256, 384, 48)
+        self.fire7 = Fire(384, 384, 48)
+        self.fire8 = Fire(384, 512, 64)
+        self.fire9 = Fire(512, 512, 64)
+
+        self.conv10 = nn.Conv2d(512, class_num, 1)
+        self.avg = nn.AdaptiveAvgPool2d(1)
+        self.maxpool = nn.MaxPool2d(2, 2)
+
+    def forward(self, x):
+        x = self.stem(x)
+        self.activations['x'] = x
+
+        f2 = self.fire2(x)
+        self.activations['f2'] = f2
+        f3 = self.fire3(f2) + f2
+        self.activations['f3'] = f3
+        f4 = self.fire4(f3)
+        self.activations['f4'] = f4
+        f4 = self.maxpool(f4)
+        self.activations['f4.2'] = f4
+
+        f5 = self.fire5(f4) + f4
+        self.activations['f5'] = f5
+        f6 = self.fire6(f5)
+        self.activations['f6'] = f6
+        f7 = self.fire7(f6) + f6
+        self.activations['f7'] = f7
+        f8 = self.fire8(f7)
+        self.activations['f8'] = f8
+        f8 = self.maxpool(f8)
+        self.activations['f8.2'] = f8
+
+        f9 = self.fire9(f8)
+        self.activations['f9'] = f9
+        c10 = self.conv10(f9)
+        self.activations['c10'] = c10
+
+        x = self.avg(c10)
+        self.activations['c11'] = x
+        x = x.view(x.size(0), -1)
+        self.activations['c12'] = x
+
+        return x
+
+
+def squeezenetlog(class_num=100):
+    return SqueezeNetLog(class_num=class_num)

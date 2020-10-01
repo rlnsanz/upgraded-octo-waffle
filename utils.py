@@ -106,6 +106,9 @@ def get_network(args, use_gpu=True):
     elif args.net == 'squeezenet':
         from models.squeezenet import squeezenet
         net = squeezenet()
+    elif args.net == 'squeezenetlog':
+        from models.squeezenet import squeezenetlog
+        net = squeezenetlog()
     elif args.net == 'mobilenet':
         from models.mobilenet import mobilenet
         net = mobilenet()
