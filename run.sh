@@ -2,8 +2,8 @@
 
 set -e
 
-INIT='strong'
-NGPUS='4'
+INIT='weak'
+NGPUS='8'
 MODEL='squeezenet'
 
 echo $1
@@ -35,6 +35,12 @@ case ${1:-"base"} in
     reexec)
     MOUD="--flor=name:$MODEL,mode:reexec,memo:blessed.json,predinit:$INIT"
     cp train_transformed.py train.py
+    ;;
+
+    mikeparallel)
+    MOUD="--flor=name:$MODEL,mode:reexec,memo:blessed.json,predinit:$INIT,pid:$2,ngpus:$NGPUS"
+    MODEL="${MODEL}log"
+    cp train_parallel_mike_log.py train.py
     ;;
 
     parallel)
