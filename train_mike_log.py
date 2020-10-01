@@ -21,6 +21,8 @@ from torch.autograd import Variable
 from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler, Dynamic_CLR_Scheduler
 
+import cloudpickle
+
 def train(epoch):
 
     net.train()
@@ -40,18 +42,19 @@ def train(epoch):
         loss.backward()                         # changes loss
         optimizer.step()                        # changes optimizer
 
+        # LOG ACTIVATIONS
+        for k in net.activations:
+            my_logger.write(f"{k} -- {cloudpickle.dumps(net.activations[k])}\n")
+
         for i, p in enumerate(net.parameters()):
-            # LOG ACTIVATIONS
-            for k in net.activations:
-                print(k, net.activations[k])
             # LOG WEIGHTS
-            print(i, p.size(), p)
+            my_logger.write(f"{i} -- {p.size()} -- {cloudpickle.dumps(p)}\n")
             # LOG GRADIENTS
             if p.requires_grad:
-                print(i, p.grad.size(), p.grad)
+                my_logger.write(f"{i} -- {p.grad.size()} -- {cloudpickle.dumps(p.grad)}\n")
 
         print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=batch_index * args.b + len(images), total_samples=len(cifar100_training_loader.dataset)))                                      # Could have side-effects, and I can't analyze them, so I should replay it
-
+    my_logger.flush()
 
 def eval_training(epoch):
     net.eval()                                                      # changes net
@@ -114,17 +117,18 @@ if __name__ == '__main__':
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
     os.makedirs(checkpoint_path)
 
-    best_acc = 0.0
-    for epoch in range(settings.EPOCH):
-        train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
-        torch.save(net.state_dict(), os.path.join(checkpoint_path, f'net_{epoch}.pt'))
-        torch.save(optimizer.state_dict(), os.path.join(checkpoint_path, f'opt_{epoch}.pt'))
-        torch.save(clr_scheduler.state_dict(), os.path.join(checkpoint_path, f'clrsched_{epoch}.pt'))
-        loss, acc = eval_training(epoch)    #changes loss, acc, net
+    with open(os.path.join(checkpoint_path, 'log.txt'), 'w') as my_logger:
+        best_acc = 0.0
+        for epoch in range(settings.EPOCH):
+            train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
+            torch.save(net.state_dict(), os.path.join(checkpoint_path, f'net_{epoch}.pt'))
+            torch.save(optimizer.state_dict(), os.path.join(checkpoint_path, f'opt_{epoch}.pt'))
+            torch.save(clr_scheduler.state_dict(), os.path.join(checkpoint_path, f'clrsched_{epoch}.pt'))
+            loss, acc = eval_training(epoch)    #changes loss, acc, net
 
-        print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
-            loss,
-            acc
-        ))
+            print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
+                loss,
+                acc
+            ))
 
-    print("------- {} seconds ---------".format(time.time() - start_time))
+        print("------- {} seconds ---------".format(time.time() - start_time))
