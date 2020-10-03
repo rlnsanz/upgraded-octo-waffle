@@ -42,16 +42,17 @@ def train(epoch):
         loss.backward()                         # changes loss
         optimizer.step()                        # changes optimizer
 
-        # LOG ACTIVATIONS
-        for k in net.activations:
-            my_logger.write(f"{k} -- {torch.norm(net.activations[k])}\n")
+        if epoch % 2 == 0:
+            # LOG ACTIVATIONS
+            for k in net.activations:
+                my_logger.write(f"{k} -- {torch.norm(net.activations[k])}\n")
 
-        for i, p in enumerate(net.parameters()):
-            # LOG WEIGHTS
-            my_logger.write(f"{i} -- {p.size()} -- {cloudpickle.dumps(p)}\n")
-            # LOG GRADIENTS
-            if p.requires_grad:
-                my_logger.write(f"{i} -- {p.grad.size()} -- {cloudpickle.dumps(p.grad)}\n")
+            for i, p in enumerate(net.parameters()):
+                # LOG WEIGHTS
+                my_logger.write(f"{i} -- {p.size()} -- {cloudpickle.dumps(p)}\n")
+                # LOG GRADIENTS
+                if p.requires_grad:
+                    my_logger.write(f"{i} -- {p.grad.size()} -- {cloudpickle.dumps(p.grad)}\n")
 
         print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=batch_index * args.b + len(images), total_samples=len(cifar100_training_loader.dataset)))                                      # Could have side-effects, and I can't analyze them, so I should replay it
     my_logger.flush()
@@ -117,9 +118,12 @@ if __name__ == '__main__':
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
     os.makedirs(checkpoint_path)
 
+    print(f"-------------- OVERHEAD: {time.time() - start_time} seconds")
+
     with open(os.path.join(checkpoint_path, 'log.txt'), 'w') as my_logger:
         best_acc = 0.0
         for epoch in range(settings.EPOCH):
+            epoch_start_time = time.time()
             train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
             torch.save(net.state_dict(), os.path.join(checkpoint_path, f'net_{epoch}.pt'))
             torch.save(optimizer.state_dict(), os.path.join(checkpoint_path, f'opt_{epoch}.pt'))
@@ -130,5 +134,6 @@ if __name__ == '__main__':
                 loss,
                 acc
             ))
+            print(f"------------- Epoch {epoch}: {time.time() - epoch_start_time} seconds --------------------")
 
         print("------- {} seconds ---------".format(time.time() - start_time))
