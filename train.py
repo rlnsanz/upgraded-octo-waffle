@@ -24,6 +24,7 @@ from utils import get_network, get_training_dataloader, get_test_dataloader, War
 def train(epoch):
 
     net.train()
+    print(f'------------ num steps: {len(cifar100_training_loader)}')
     for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
 
         clr_scheduler.step()                    # changes clr_scheduler
@@ -75,7 +76,8 @@ if __name__ == '__main__':
     parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')           
-    args = parser.parse_args()
+    args = parser.parse_args()                                                                 
+
 
     net = get_network(args, use_gpu=args.gpu)                                                  
         

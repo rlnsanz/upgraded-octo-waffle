@@ -4,7 +4,7 @@ set -e
 
 INIT='weak'
 NGPUS='8'
-MODEL='squeezenet'
+MODEL='resnet152'
 
 echo $1
 echo $2

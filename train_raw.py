@@ -24,6 +24,7 @@ from utils import get_network, get_training_dataloader, get_test_dataloader, War
 def train(epoch):
 
     net.train()
+    print(f'------------ num steps: {len(cifar100_training_loader)}')
     for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
 
         clr_scheduler.step()                    # changes clr_scheduler
