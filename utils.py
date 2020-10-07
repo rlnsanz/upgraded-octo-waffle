@@ -61,6 +61,8 @@ class TBLogger:
 
     def do(self, batch_index):
         work_epochs = int((self.total_epochs * self.loglvl) / 4)
+        if work_epochs == 0:
+            return False
         if self.epoch in range(self.total_epochs)[-1*work_epochs:]:
             return batch_index % self.logfreq == 0
         else:
