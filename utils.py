@@ -28,6 +28,7 @@ class TBLogger:
         self.writer = SummaryWriter(f'{owner}/{datetime.now().isoformat()}')
         self.args = args
         self.loglvl = int(args.loglvl)
+        self.logfreq = int(args.logfreq)
         self.iter_per_epoch = iter_per_epoch
 
         self.epoch = start_epoch
@@ -35,6 +36,9 @@ class TBLogger:
         self.optimizer = optimizer
 
         self.total_epochs = settings.EPOCH
+
+        if self.owner == 'flor' and self.loglvl > 0:
+            self.loglvl = 4
 
     def big_step(self, loss, acc):
         self.writer.add_scalar('metric/val_loss', loss, self.iter_per_epoch * (self.epoch + 1))
@@ -46,7 +50,7 @@ class TBLogger:
         self.writer.add_scalar('metric/loss', loss.item(), self.epoch*self.iter_per_epoch + batch_index)
         self.writer.add_scalar('param/lr', self.optimizer.param_groups[0]['lr'], self.epoch*self.iter_per_epoch + batch_index)
 
-        if self.do():
+        if self.do(batch_index):
             for k in self.net.activations:
                 self.writer.add_histogram(f'activations/{k}', self.net.activations[k], self.epoch*self.iter_per_epoch + batch_index)
 
@@ -55,11 +59,12 @@ class TBLogger:
                 if p.requires_grad:
                     self.writer.add_histogram(f'grad/{n}', p.grad, self.epoch*self.iter_per_epoch + batch_index)
 
-    def do(self):
-        if self.owner == 'flor' and self.loglvl > 0:
-            return True
+    def do(self, batch_index):
         work_epochs = int((self.total_epochs * self.loglvl) / 4)
-        return self.epoch in range(self.total_epochs)[-1*work_epochs:]
+        if self.epoch in range(self.total_epochs)[-1*work_epochs:]:
+            return batch_index % self.logfreq == 0
+        else:
+            return False
 
 
     def close(self):
@@ -72,6 +77,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-loglvl', type=int, required=True, help='log level')
+    parser.add_argument('-logfreq', type=int, required=True, help='log frequency')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
     parser.add_argument('-w', type=int, default=2, help='number of workers for dataloader')
     parser.add_argument('-b', type=int, default=128, help='batch size for dataloader')
@@ -84,6 +90,7 @@ def get_args():
     All levels log loss and lr
     
     Activations, weights, and gradients conditionally logged:
+    -1: 
     0: No heavy logging
     1: Log last quartile
     2: Log last half
