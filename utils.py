@@ -6,6 +6,7 @@ author baiyu
 import sys
 
 import numpy
+import argparse
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -13,7 +14,85 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
-#from dataset import CIFAR100Train, CIFAR100Test
+from tensorboardX import SummaryWriter
+
+import datetime
+from conf import settings
+
+class TBLogger:
+
+    def __init__(self, args, owner, net, optimizer, start_epoch, iter_per_epoch):
+
+        assert owner in ['judy', 'mike', 'chuck', 'flor']
+        self.owner = owner
+        self.writer = SummaryWriter(f'{owner}/{datetime.now().isoformat()}')
+        self.args = args
+        self.loglvl = int(args.loglvl)
+        self.iter_per_epoch = iter_per_epoch
+
+        self.epoch = start_epoch
+        self.net = net
+        self.optimizer = optimizer
+
+        self.total_epochs = settings.EPOCH
+
+    def big_step(self, loss, acc):
+        self.writer.add_scalar('metric/val_loss', loss, self.iter_per_epoch * (self.epoch + 1))
+        self.writer.add_scalar('metric/accuracy', acc, self.iter_per_epoch * (self.epoch + 1))
+
+        self.epoch += 1
+
+    def small_step(self, loss, batch_index):
+        self.writer.add_scalar('metric/loss', loss.item(), self.epoch*self.iter_per_epoch + batch_index)
+        self.writer.add_scalar('param/lr', self.optimizer.param_groups[0]['lr'], self.epoch*self.iter_per_epoch + batch_index)
+
+        if self.do():
+            for k in self.net.activations:
+                self.writer.add_histogram(f'activations/{k}', self.net.activations[k], self.epoch*self.iter_per_epoch + batch_index)
+
+            for n, p in self.net.named_parameters():
+                self.writer.add_histogram(f'weight/{n}', p, self.epoch*self.iter_per_epoch + batch_index)
+                if p.requires_grad:
+                    self.writer.add_histogram(f'grad/{n}', p.grad, self.epoch*self.iter_per_epoch + batch_index)
+
+    def do(self):
+        if self.owner == 'flor':
+            return True
+        work_epochs = int ((self.total_epochs * self.loglvl) / 4)
+        return self.epoch in range(self.total_epochs)[-1*work_epochs:]
+
+
+    def close(self):
+        self.writer.close()
+
+
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-net', type=str, required=True, help='net type')
+    parser.add_argument('-loglvl', type=int, required=True, help='log level')
+    parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
+    parser.add_argument('-w', type=int, default=2, help='number of workers for dataloader')
+    parser.add_argument('-b', type=int, default=128, help='batch size for dataloader')
+    parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
+    parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
+    parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
+    args = parser.parse_args()
+
+    """
+    All levels log loss and lr
+    
+    Activations, weights, and gradients conditionally logged:
+    0: No heavy logging
+    1: Log last quartile
+    2: Log last half
+    3: Log last three quartiles
+    4: Log it all
+    """
+    assert args.loglvl in range(5)
+
+    return args
 
 def get_network(args, use_gpu=True):
     """ return given network
