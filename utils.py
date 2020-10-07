@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 from tensorboardX import SummaryWriter
 
-import datetime
+from datetime import datetime
 from conf import settings
 
 class TBLogger:
