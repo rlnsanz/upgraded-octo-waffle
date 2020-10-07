@@ -56,7 +56,7 @@ class TBLogger:
                     self.writer.add_histogram(f'grad/{n}', p.grad, self.epoch*self.iter_per_epoch + batch_index)
 
     def do(self):
-        if self.owner == 'flor':
+        if self.owner == 'flor' and self.loglvl > 0:
             return True
         work_epochs = int ((self.total_epochs * self.loglvl) / 4)
         return self.epoch in range(self.total_epochs)[-1*work_epochs:]
