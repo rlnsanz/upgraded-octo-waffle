@@ -26,7 +26,6 @@ from utils import TBLogger, get_args
 def train(epoch):
 
     net.train()
-    print(f'------------ num steps: {len(cifar100_training_loader)}')
     for batch_index, (images, labels) in enumerate(cifar100_training_loader): #batch_index, images, labels shadowed at end of loop
 
         clr_scheduler.step()                    # changes clr_scheduler
@@ -97,12 +96,12 @@ if __name__ == '__main__':
     iter_per_epoch = len(cifar100_training_loader)                                       
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.0, weight_decay=0.0)         
-    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * settings.EPOCH), min_lr=args.lr, max_lr=3.0, tail_frac=0.0) #memoize?
+    clr_scheduler = CLR_Scheduler(optimizer, net_steps=(iter_per_epoch * args.epoch), min_lr=args.lr, max_lr=3.0, tail_frac=0.0) #memoize?
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)                                                             
 
     best_acc = 0.0
     tblogger = TBLogger(args,  net, optimizer, start_epoch=0, iter_per_epoch=iter_per_epoch)
-    for epoch in range(settings.EPOCH):
+    for epoch in range(args.epoch):
         train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
         loss, acc = eval_training(epoch)    #changes loss, acc, net                                                  
 
