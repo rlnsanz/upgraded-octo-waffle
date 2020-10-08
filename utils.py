@@ -19,8 +19,6 @@ from tensorboardX import SummaryWriter
 from datetime import datetime
 from conf import settings
 
-import flor
-
 class TBLogger:
 
     def __init__(self, args, net, optimizer, start_epoch, iter_per_epoch):
@@ -117,6 +115,7 @@ def get_args():
     elif args.owner == 'mike':
         args.loglvl = 4
     elif args.owner == 'flor':
+        import flor
         epoch = int((args.epoch * args.loglvl) / 4)
         args.epoch = len(flor.utils.get_partitions(epoch, 8, True, 1)[0])
         args.loglvl = 4
