@@ -19,10 +19,13 @@ from tensorboardX import SummaryWriter
 from datetime import datetime
 from conf import settings
 
+import flor
+
 class TBLogger:
 
-    def __init__(self, args, owner, net, optimizer, start_epoch, iter_per_epoch):
+    def __init__(self, args, net, optimizer, start_epoch, iter_per_epoch):
 
+        owner = args.owner
         assert owner in ['judy', 'mike', 'chuck', 'flor']
         self.owner = owner
         self.writer = SummaryWriter(f'{owner}/{datetime.now().isoformat()}')
@@ -35,7 +38,7 @@ class TBLogger:
         self.net = net
         self.optimizer = optimizer
 
-        self.total_epochs = settings.EPOCH
+        self.total_epochs = args.epoch
 
         if self.owner == 'flor' and self.loglvl > 0:
             self.loglvl = 4
@@ -79,13 +82,15 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-loglvl', type=int, required=True, help='log level')
-    parser.add_argument('-logfreq', type=int, required=True, help='log frequency')
+    parser.add_argument('-logfreq', type=int, default=10, help='log frequency')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
     parser.add_argument('-w', type=int, default=2, help='number of workers for dataloader')
     parser.add_argument('-b', type=int, default=128, help='batch size for dataloader')
     parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
+    parser.add_argument('-epoch', type=int, default=100, help='number of epochs for training')
+    parser.add_argument('-owner', type=str, required=True, help='experiment owner')
     args = parser.parse_args()
 
     """
@@ -99,7 +104,20 @@ def get_args():
     3: Log last three quartiles
     4: Log it all
     """
-    assert args.loglvl in range(5)
+    assert args.loglvl in range(1, 5)
+    assert args.owner in ['judy', 'mike', 'chuck', 'flor']
+
+    if args.owner == 'judy':
+        args.epoch = int((args.epoch * args.loglvl) / 4)
+        args.loglvl = 4
+    elif args.owner == 'chuck':
+        pass
+    elif args.owner == 'mike':
+        args.loglvl = 4
+    elif args.owner == 'flor':
+        epoch = int((args.epoch * args.loglvl) / 4)
+        args.epoch = len(flor.utils.get_partitions(epoch, 8, True, 1)[0])
+        args.loglvl = 4
 
     return args
 

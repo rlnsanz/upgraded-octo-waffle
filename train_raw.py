@@ -21,6 +21,8 @@ from torch.autograd import Variable
 from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, CLR_Scheduler, Dynamic_CLR_Scheduler
 
+from utils import TBLogger, get_args
+
 def train(epoch):
 
     net.train()
@@ -40,6 +42,8 @@ def train(epoch):
         loss = loss_function(outputs, labels)   # changes loss; not_changes loss_function, outputs, labels
         loss.backward()                         # changes loss
         optimizer.step()                        # changes optimizer
+
+        tblogger.small_step(loss, batch_index)
 
         print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(loss.item(), optimizer.param_groups[0]['lr'], epoch=epoch, trained_samples=batch_index * args.b + len(images), total_samples=len(cifar100_training_loader.dataset)))                                      # Could have side-effects, and I can't analyze them, so I should replay it
 
@@ -68,16 +72,7 @@ def eval_training(epoch):
     return test_loss / len(cifar100_test_loader.dataset), correct.float() / len(cifar100_test_loader.dataset)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()                                                         
-    parser.add_argument('-net', type=str, required=True, help='net type')
-    parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
-    parser.add_argument('-w', type=int, default=2, help='number of workers for dataloader')
-    parser.add_argument('-b', type=int, default=128, help='batch size for dataloader')
-    parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
-    parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
-    parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')           
-    args = parser.parse_args()                                                                 
-
+    args = get_args()
 
     net = get_network(args, use_gpu=args.gpu)                                                  
         
@@ -105,13 +100,17 @@ if __name__ == '__main__':
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)                                                             
 
     best_acc = 0.0
+    tblogger = TBLogger(args,  net, optimizer, start_epoch=0, iter_per_epoch=iter_per_epoch)
     for epoch in range(settings.EPOCH):
         train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
         loss, acc = eval_training(epoch)    #changes loss, acc, net                                                  
+
+        tblogger.big_step(loss, acc)
 
         print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
             loss,
             acc
         ))
 
-    print("------- {} seconds ---------".format(time.time() - start_time))
+    print(f"------- {time.time() - start_time} seconds --------- owner: {args.owner}")
+    tblogger.close()
