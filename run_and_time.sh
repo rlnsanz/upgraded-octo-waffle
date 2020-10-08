@@ -23,7 +23,7 @@ echo "running benchmark run level 3"
 ./run.sh $1 3
 
 echo "running benchmark run level 4"
-./run.sh $1 3
+./run.sh $1 4
 
 sleep 3
 ret_code=$?; if [[ $ret_code != 0 ]]; then exit $ret_code; fi
