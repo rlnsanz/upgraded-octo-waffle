@@ -102,11 +102,12 @@ if __name__ == '__main__':
     best_acc = 0.0
     tblogger = TBLogger(args,  net, optimizer, start_epoch=0, iter_per_epoch=iter_per_epoch)
     for epoch in range(args.epoch):
+        epoch_start_time = time.time()
         train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
         loss, acc = eval_training(epoch)    #changes loss, acc, net                                                  
 
         tblogger.big_step(loss, acc)
-
+        print(f"------- {time.time() - epoch_start_time} segundos cada epoca --------- owner: {args.owner}")
         print('Test set: Average loss: {:.4f}, Accuracy: {:.4f}'.format(
             loss,
             acc
