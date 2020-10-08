@@ -39,6 +39,13 @@ case ${1:-"base"} in
     cp train_raw.py train.py
     ;;
 
+    flar)
+    TBLOG="-owner mike -loglvl $2"
+    MOUD="--flor=name:$MODEL,mode:reexec,memo:blessed.json,predinit:$INIT,pid:1,ngpus:$NGPUS"
+    MODEL="${MODEL}log"
+    cp train_parallel.py train.py
+    ;;
+
     base)
     MOUD=''
     cp train_raw.py train.py

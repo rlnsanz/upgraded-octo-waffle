@@ -93,6 +93,8 @@ def get_args():
     parser.add_argument('-owner', type=str, required=True, help='experiment owner')
     args = parser.parse_args()
 
+    args.truloglvl = args.loglvl
+
     """
     All levels log loss and lr
     
