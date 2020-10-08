@@ -104,10 +104,11 @@ def get_args():
     3: Log last three quartiles
     4: Log it all
     """
-    assert args.loglvl in range(1, 5)
+    assert args.loglvl in range(5)
     assert args.owner in ['judy', 'mike', 'chuck', 'flor']
 
     if args.owner == 'judy':
+        assert args.loglvl > 0
         args.epoch = int((args.epoch * args.loglvl) / 4)
         args.loglvl = 4
     elif args.owner == 'chuck':
@@ -115,6 +116,7 @@ def get_args():
     elif args.owner == 'mike':
         args.loglvl = 4
     elif args.owner == 'flor':
+        assert args.loglvl > 0
         import flor
         epoch = int((args.epoch * args.loglvl) / 4)
         args.epoch = len(flor.utils.get_partitions(epoch, 8, True, 1)[0])
