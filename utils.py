@@ -80,7 +80,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-loglvl', type=int, required=True, help='log level')
-    parser.add_argument('-logfreq', type=int, default=10, help='log frequency')
+    parser.add_argument('-logfreq', type=int, default=100, help='log frequency')
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
     parser.add_argument('-w', type=int, default=2, help='number of workers for dataloader')
     parser.add_argument('-b', type=int, default=128, help='batch size for dataloader')
