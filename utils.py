@@ -4,6 +4,7 @@ author baiyu
 """
 
 import sys
+import os
 
 import numpy
 import argparse
@@ -84,6 +85,18 @@ class TBLogger:
 
     def close(self):
         self.writer.close()
+
+    def flush(self, fork=False):
+        pid = None
+        if fork:
+            pid = os.fork()
+        if not fork or not pid:
+            os.nice(1)
+            for a, b, c in self.buffer:
+                self.writer.add_histogram(a, b, c)
+            self.writer.close()
+        else:
+            self.buffer = []
 
 
 
