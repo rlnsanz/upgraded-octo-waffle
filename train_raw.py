@@ -100,7 +100,7 @@ if __name__ == '__main__':
     checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)                                                             
 
     best_acc = 0.0
-    tblogger = TBLogger(args,  net, optimizer, start_epoch=0, iter_per_epoch=iter_per_epoch)
+    tblogger = TBLogger(args,  net, optimizer, start_epoch=0, iter_per_epoch=iter_per_epoch, eric=True)
     for epoch in range(args.epoch):
         epoch_start_time = time.time()
         train(epoch)                        #changes net,optimizer,clr_scheduler;not_changes train, epoch
@@ -112,6 +112,9 @@ if __name__ == '__main__':
             loss,
             acc
         ))
+        if epoch in [25, 50, 75]:
+            tblogger.flush(fork=True)
 
     print(f"------- {time.time() - start_time} seconds --------- owner: {args.owner}")
-    tblogger.close()
+    tblogger.flush(fork=True)
+
