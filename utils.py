@@ -70,7 +70,7 @@ class TBLogger:
                     if not self.eric:
                         self.writer.add_histogram(f'grad/{n}', p.grad, self.epoch*self.iter_per_epoch + batch_index)
                     else:
-                        self.buffer.append((f'grad/{n}', p.grad, self.epoch*self.iter_per_epoch + batch_index))
+                        self.buffer.append((f'grad/{n}', p.grad.cpu(), self.epoch*self.iter_per_epoch + batch_index))
 
     def do(self, batch_index):
         work_epochs = int((self.total_epochs * self.loglvl) / 4)
