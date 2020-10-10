@@ -54,6 +54,7 @@ class TBLogger:
         self.writer.add_scalar('param/lr', self.optimizer.param_groups[0]['lr'], self.epoch*self.iter_per_epoch + batch_index)
 
         if self.do(batch_index):
+            print('heavy serializing')
             for k in self.net.activations:
                 if not self.eric:
                     self.writer.add_histogram(f'activations/{k}', self.net.activations[k], self.epoch*self.iter_per_epoch + batch_index)
