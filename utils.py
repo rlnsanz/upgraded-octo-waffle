@@ -87,6 +87,8 @@ class TBLogger:
         self.writer.close()
 
     def flush(self, fork=False):
+        if not self.buffer:
+            return
         pid = None
         if fork:
             pid = os.fork()
