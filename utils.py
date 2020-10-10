@@ -21,8 +21,8 @@ from conf import settings
 
 class TBLogger:
 
-    def __init__(self, args, net, optimizer, start_epoch, iter_per_epoch):
-
+    def __init__(self, args, net, optimizer, start_epoch, iter_per_epoch, eric=None):
+        self.eric = eric
         owner = args.owner
         assert owner in ['judy', 'mike', 'chuck', 'flor']
         self.owner = owner
@@ -37,6 +37,8 @@ class TBLogger:
         self.optimizer = optimizer
 
         self.total_epochs = args.epoch
+
+        self.buffer = []
 
         if self.owner == 'flor' and self.loglvl > 0:
             self.loglvl = 4
@@ -53,12 +55,21 @@ class TBLogger:
 
         if self.do(batch_index):
             for k in self.net.activations:
-                self.writer.add_histogram(f'activations/{k}', self.net.activations[k], self.epoch*self.iter_per_epoch + batch_index)
+                if not self.eric:
+                    self.writer.add_histogram(f'activations/{k}', self.net.activations[k], self.epoch*self.iter_per_epoch + batch_index)
+                else:
+                    self.buffer.append((f'activations/{k}', self.net.activations[k].cpu(), self.epoch*self.iter_per_epoch + batch_index))
 
             for n, p in self.net.named_parameters():
-                self.writer.add_histogram(f'weight/{n}', p, self.epoch*self.iter_per_epoch + batch_index)
+                if not self.eric:
+                    self.writer.add_histogram(f'weight/{n}', p, self.epoch*self.iter_per_epoch + batch_index)
+                else:
+                    self.buffer.append((f'weight/{n}', p.cpu(), self.epoch*self.iter_per_epoch + batch_index))
                 if p.requires_grad:
-                    self.writer.add_histogram(f'grad/{n}', p.grad, self.epoch*self.iter_per_epoch + batch_index)
+                    if not self.eric:
+                        self.writer.add_histogram(f'grad/{n}', p.grad, self.epoch*self.iter_per_epoch + batch_index)
+                    else:
+                        self.buffer.append((f'grad/{n}', p.grad, self.epoch*self.iter_per_epoch + batch_index))
 
     def do(self, batch_index):
         work_epochs = int((self.total_epochs * self.loglvl) / 4)
