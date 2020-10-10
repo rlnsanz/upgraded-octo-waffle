@@ -116,5 +116,6 @@ if __name__ == '__main__':
             tblogger.flush(fork=True)
 
     print(f"------- {time.time() - start_time} seconds --------- owner: {args.owner}")
+    tblogger.close()
     tblogger.flush(fork=True)
 

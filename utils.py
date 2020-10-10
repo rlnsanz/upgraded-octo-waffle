@@ -92,9 +92,11 @@ class TBLogger:
             pid = os.fork()
         if not fork or not pid:
             os.nice(1)
+            writer = SummaryWriter(f'{self.owner}/hist-{datetime.now().isoformat()}')
             for a, b, c in self.buffer:
-                self.writer.add_histogram(a, b, c)
-            self.writer.close()
+                writer.add_histogram(a, b, c)
+            writer.close()
+            os._exit(0)
         else:
             self.buffer = []
 
