@@ -21,7 +21,7 @@ from conf import settings
 
 class TBLogger:
 
-    def __init__(self, args, net, optimizer, start_epoch, iter_per_epoch, eric=None):
+    def __init__(self, args, net, optimizer, start_epoch, iter_per_epoch, eric=False):
         self.eric = eric
         owner = args.owner
         assert owner in ['judy', 'mike', 'chuck', 'flor']
