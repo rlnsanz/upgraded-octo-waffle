@@ -1,5 +1,4 @@
-# train.py
-#!/usr/bin/env  python3
+# type: ignore
 
 import time
 
@@ -30,48 +29,42 @@ from utils import (
 )
 
 import flor
+from flor import Flor
 
 
 def train(epoch):
+    net.train()
+    for batch_index, (images, labels) in Flor.loop(
+        enumerate(cifar100_training_loader)
+    ):  # batch_index, images, labels shadowed at end of loop
 
-    if flor.SkipBlock.step_into("train"):
-        net.train()
-        for batch_index, (images, labels) in enumerate(
-            cifar100_training_loader
-        ):  # batch_index, images, labels shadowed at end of loop
+        clr_scheduler.step()  # changes clr_scheduler
+        images = Variable(images)  # changes images:out; not_changes Variable, images:in
+        labels = Variable(labels)  # changes labels:out; not_changes Variable, labels:in
 
-            clr_scheduler.step()  # changes clr_scheduler
-            images = Variable(
-                images
-            )  # changes images:out; not_changes Variable, images:in
-            labels = Variable(
-                labels
-            )  # changes labels:out; not_changes Variable, labels:in
+        if (
+            torch.cuda.is_available()
+        ):  # not_changes torch,torch.cuda,torch.cuda.is_available
+            labels = labels.cuda()  # changes labels:out,
+            images = images.cuda()  # changes images
 
-            if (
-                torch.cuda.is_available()
-            ):  # not_changes torch,torch.cuda,torch.cuda.is_available
-                labels = labels.cuda()  # changes labels:out,
-                images = images.cuda()  # changes images
+        optimizer.zero_grad()  # changes optimizer
+        outputs = net(images)  # changes outputs; not_changes net, images
+        loss = loss_function(
+            outputs, labels
+        )  # changes loss; not_changes loss_function, outputs, labels
+        loss.backward()  # changes loss
+        optimizer.step()  # changes optimizer
 
-            optimizer.zero_grad()  # changes optimizer
-            outputs = net(images)  # changes outputs; not_changes net, images
-            loss = loss_function(
-                outputs, labels
-            )  # changes loss; not_changes loss_function, outputs, labels
-            loss.backward()  # changes loss
-            optimizer.step()  # changes optimizer
-
-            print(
-                "Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}".format(
-                    loss.item(),
-                    optimizer.param_groups[0]["lr"],
-                    epoch=epoch,
-                    trained_samples=batch_index * args.b + len(images),
-                    total_samples=len(cifar100_training_loader.dataset),
-                )
-            )  # Could have side-effects, and I can't analyze them, so I should replay it
-    flor.SkipBlock.end(clr_scheduler, optimizer, net)
+        print(
+            "Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}".format(
+                loss.item(),
+                optimizer.param_groups[0]["lr"],
+                epoch=epoch,
+                trained_samples=batch_index * args.b + len(images),
+                total_samples=len(cifar100_training_loader.dataset),
+            )
+        )  # Could have side-effects, and I can't analyze them, so I should replay it
 
 
 def eval_training(epoch):
@@ -149,7 +142,8 @@ if __name__ == "__main__":
     )
 
     best_acc = 0.0
-    for epoch in flor.it(range(settings.EPOCH)):
+    Flor.checkpoints(clr_scheduler, optimizer, net)
+    for epoch in Flor.loop(range(settings.EPOCH)):
 
         train(epoch)  # changes net,optimizer,clr_scheduler;not_changes train, epoch
         loss, acc = eval_training(epoch)  # changes loss, acc, net
