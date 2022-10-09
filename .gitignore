@@ -4,3 +4,4 @@ data/*
 conf/__pycache__/*
 .DS_Store
 benchmark-*
+.mypy**/**
