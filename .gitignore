@@ -5,3 +5,4 @@ conf/__pycache__/*
 .DS_Store
 benchmark-*
 .mypy**/**
+.vscode/settings.json
